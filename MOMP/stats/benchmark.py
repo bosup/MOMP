@@ -151,25 +151,25 @@ def compute_onset_metrics_with_windows(onset_df, tolerance_days=3, verification_
 
 
 
-def compute_metrics_multiple_years(years, model_forecast_dir, imd_folder, thresh_file, file_pattern='{}.nc',
-                                 tolerance_days=3, verification_window=(1,15),
-                                 mok=True, members=range(1,31), **kwargs):
+def compute_metrics_multiple_years(years, *, model_dir, obs_dir, thresh_file, file_pattern,
+                                 tolerance_days, verification_window,
+                                 mok, members, climatology, probabilistic, **kwargs):
     """Compute onset metrics for multiple years."""
 #
-    members = kwargs['members']
-    probabilistic = kwargs['probabilistic']
+    #members = kwargs['members']
+    #probabilistic = kwargs['probabilistic']
 
-    mok = kwargs["mok"]
-    window = kwargs["wet_spell"]
-    wet_init = kwargs["wet_init"]
-    dry_spell = kwargs["dry_spell"]
-    dry_extent = kwargs["dry_extent"]
-    dry_threshold = kwargs["dry_threshold"]
-    max_forecast_day = kwargs['max_forecast_day']
-    tolerance_days = kwargs['tolerance_days']
-    verification_window = kwargs['verification_window']
+    #mok = kwargs["mok"]
+    #window = kwargs["wet_spell"]
+    #wet_init = kwargs["wet_init"]
+    #dry_spell = kwargs["dry_spell"]
+    #dry_extent = kwargs["dry_extent"]
+    #dry_threshold = kwargs["dry_threshold"]
+    #max_forecast_day = kwargs['max_forecast_day']
+    #tolerance_days = kwargs['tolerance_days']
+    #verification_window = kwargs['verification_window']
 
-    climatology = kwargs['climatology']
+    #climatology = kwargs['climatology']
 
     #forecast_bin_start = verification_window[0]
     #forecast_bin_end = verification_window[1]
@@ -179,19 +179,19 @@ def compute_metrics_multiple_years(years, model_forecast_dir, imd_folder, thresh
     onset_da_dict = {}
 #
     # depend on if thresh is a 2-D array or scalar
-    thres_da = load_thresh_file(thresh_file, **kwargs)
+    thresh_da = load_thresh_file(**kwargs)
 
     if climatology:
-        climatological_onset_doy = compute_climatological_onset(imd_folder, thres_file, mok=mok)
+        climatological_onset_doy = compute_climatological_onset(obs_dir, thresh_file, mok=mok)
 
     for year in years:
         print(f"\n{'='*50}")
         print(f"Processing year {year}")
         print(f"{'='*50}")
 
-        imd = load_imd_rainfall(year, imd_folder)
+        imd = load_imd_rainfall(year, **kwargs)
 
-        onset_da = detect_observed_onset(imd, thres_da, year, mok=mok, **kwargs)
+        onset_da = detect_observed_onset(imd, thresh_da, year, mok=mok, **kwargs)
 
         if probabilistic:
             p_model = get_forecast_probabilistic_twice_weekly(year, model_forecast_dir, file_pattern, members, **kwargs)
@@ -201,13 +201,12 @@ def compute_metrics_multiple_years(years, model_forecast_dir, imd_folder, thresh
 
         if probabilistic:
             _, onset_df = compute_onset_for_all_members(
-                p_model, thres_da, onset_da,
-                max_forecast_day=max_forecast_day, mok=mok, **kwargs
+                p_model, thresh_da, onset_da, **kwargs
             )
 
         elif not climatology:
             onset_df = compute_onset_for_deterministic_model(
-                p_model, thres_da, onset_da,
+                p_model, thresh_da, onset_da,
                 max_forecast_day=max_forecast_day, mok=mok, **kwargs
             )
 

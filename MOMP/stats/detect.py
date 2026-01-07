@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+import xarray as xr
 
 
 def find_first_true(arr):
@@ -11,7 +13,7 @@ def find_first_true(arr):
         return -1
 
 
-def detect_onset(day, forecast_series, wet_init, wet_spell, wet_threshold, dry_spell, dry_threshold, dry_extent):#, **kwargs):
+def detect_onset(day, forecast_series, thresh, *, wet_init, wet_spell, dry_spell, dry_threshold, dry_extent, **kwargs):
 
     start_idx = day - 1
     end_idx = start_idx + wet_spell
@@ -20,7 +22,8 @@ def detect_onset(day, forecast_series, wet_init, wet_spell, wet_threshold, dry_s
         window_series = forecast_series[start_idx:end_idx]
 
         # Check basic onset condition
-        if window_series[0] > wet_init and np.nansum(window_series) > wet_threshold:
+        #if window_series[0] > wet_init and np.nansum(window_series) > wet_threshold:
+        if window_series[0] > wet_init and np.nansum(window_series) > thresh:
 
             # check if followed by dry spell
             if dry_extent > 0:
@@ -54,19 +57,23 @@ def detect_onset(day, forecast_series, wet_init, wet_spell, wet_threshold, dry_s
 
 
 # Function to detect observed onset dates based on rainfall threshold file
-def detect_observed_onset(rainfall_ds, thresh_slice, year, mok=True, **kwargs):
+def detect_observed_onset(rain_slice, thresh_slice, year, *, wet_init, wet_spell, 
+                          dry_spell, dry_threshold, dry_extent, start_date, fallback_date, mok, **kwargs):
     """Detect observed onset dates for a given year."""
-    rain_slice = rainfall_ds
+
     #window = 5 # 5-day wet spell window
 
-    mok = kwargs["mok"]
-    wet_spell = kwargs["wet_spell"]
-    wet_init = kwargs["wet_init"]
-    dry_spell = kwargs["dry_spell"]
-    dry_extent = kwargs["dry_extent"]
-    dry_threshold = kwargs["dry_threshold"]
-    start_MMDD = kwargs["start_date"][1:]
-    fallback_MMDD = kwargs["fallback_date"]
+    #mok = kwargs["mok"]
+    #wet_spell = kwargs["wet_spell"]
+    #wet_init = kwargs["wet_init"]
+    #dry_spell = kwargs["dry_spell"]
+    #dry_extent = kwargs["dry_extent"]
+    #dry_threshold = kwargs["dry_threshold"]
+    #start_MMDD = kwargs["start_date"][1:]
+    #fallback_MMDD = kwargs["fallback_date"]
+
+    start_MMDD = start_date[[1:]
+    fallback_MMDD = fallback_date
 
     # Set start date based on mok flag
     if mok:
@@ -147,18 +154,19 @@ def detect_observed_onset(rainfall_ds, thresh_slice, year, mok=True, **kwargs):
 
 
 # wet_spell, dry_spell, mok, prob=True, threshold,
-def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, 
-                                          max_forecast_day=15, mok=True, **kwargs):
+def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, *,
+                                          wet_init, wet_spell, dry_spell, dry_threshold, dry_extent,
+                                          max_forecast_day, mok, **kwargs):
     #if t_idx % 5 == 0:
     """Compute onset dates for deterministic model forecast."""
     #window = 5 # well spell
-    mok = kwargs["mok"]
-    window = kwargs["wet_spell"]
-    wet_init = kwargs["wet_init"]
-    dry_spell = kwargs["dry_spell"]
-    dry_extent = kwargs["dry_extent"]
-    dry_threshold = kwargs["dry_threshold"]
-    max_forecast_day = kwargs['max_forecast_day']
+    #mok = kwargs["mok"]
+    #window = kwargs["wet_spell"]
+    #wet_init = kwargs["wet_init"]
+    #dry_spell = kwargs["dry_spell"]
+    #dry_extent = kwargs["dry_extent"]
+    #dry_threshold = kwargs["dry_threshold"]
+    #max_forecast_day = kwargs['max_forecast_day']
     #start_MMDD = kwargs["start_date"][1:]
     #forecast_bin_end = kwargs["forecast_bin"][1]
     #forecast_bin_start = kwargs["forecast_bin"][0]
@@ -170,13 +178,13 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da,
     lats = p_model.lat.values
     lons = p_model.lon.values
 
-    date_method = "MOK (June 2nd filter)" if mok else "no date filter"
+    #date_method = "MOK (June 2nd filter)" if mok else "no date filter"
     print(f"Processing {len(init_times)} init times x {len(lats)} lats x {len(lons)} lons...")
-    print(f"Using {date_method} for onset detection")
+    #print(f"Using {date_method} for onset detection")
     print(f"Only processing forecasts initialized before observed onset dates")
 
     #max_steps_needed = forecast_bin_end + window + dry_extent - forecast_bin_start  #to add dry spell option
-    max_steps_needed = max_forecast_day + window + dry_extent - 1
+    max_steps_needed = max_forecast_day + wet_spell + dry_extent - 1
 
     total_potential_inits = 0
     valid_inits = 0
@@ -241,8 +249,9 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da,
                         #for day in range(forecast_bin_start, forecast_bin_end + 1):
                         for day in range(1, max_forecast_day + 1):
     
-                            isonset = detect_onset(day, forecast_series, wet_init,
-                                                   wet_spell, thresh, dry_spell, dry_threshold, dry_extent)
+                            #isonset = detect_onset(day, forecast_series, thresh, wet_init,
+                            #                       wet_spell, dry_spell, dry_threshold, dry_extent)
+                            isonset = detect_onset(day, forecast_series, thresh, **kwargs)
 
                             if isonset:
                                 # Calculate the actual date this forecast day represents
@@ -292,21 +301,23 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da,
 
 # Function to compute onset dates for all ensemble members and save it as DataFrame
 # in binned_skill_score_cmz.py
-def compute_onset_for_all_members(p_model, thresh_slice, onset_da, max_forecast_day=15, mok=True, **kwargs):
+def compute_onset_for_all_members(p_model, thresh_slice, onset_da, *, wet_init, wet_spell, 
+                                  dry_spell, dry_threshold, dry_extent, members, onset_percentage_threshold, 
+                                  max_forecast_day, mok, **kwargs):
     """Compute onset dates for each ensemble member, initialization time, and grid point."""
     #window = 5
-    mok = kwargs["mok"]
-    window = kwargs["wet_spell"]
-    wet_init = kwargs["wet_init"]
-    dry_spell = kwargs["dry_spell"]
-    dry_extent = kwargs["dry_extent"]
-    dry_threshold = kwargs["dry_threshold"]
-    max_forecast_day = kwargs['max_forecast_day']
-    members = kwargs["members"]
+    #mok = kwargs["mok"]
+    #window = kwargs["wet_spell"]
+    #wet_init = kwargs["wet_init"]
+    #dry_spell = kwargs["dry_spell"]
+    #dry_extent = kwargs["dry_extent"]
+    #dry_threshold = kwargs["dry_threshold"]
+    #max_forecast_day = kwargs['max_forecast_day']
+    #members = kwargs["members"]
     #start_MMDD = kwargs["start_date"][1:]
     #forecast_bin_end = kwargs["forecast_bin"][1]
     #forecast_bin_start = kwargs["forecast_bin"][0]
-    onset_percentage_threshold = kwargs["onset_percentage_threshold"]
+    #onset_percentage_threshold = kwargs["onset_percentage_threshold"]
 
 
     results_list = []
@@ -331,7 +342,7 @@ def compute_onset_for_all_members(p_model, thresh_slice, onset_da, max_forecast_
     print(f"Using {date_method} for onset detection")
 
     #max_steps_needed = forecast_bin_end + window + dry_extent - forecast_bin_start
-    max_steps_needed = max_forecast_day + window - 1
+    max_steps_needed = max_forecast_day + wet_spell - 1
 
     # Track statistics
     total_potential_forecasts = 0
@@ -413,8 +424,9 @@ def compute_onset_for_all_members(p_model, thresh_slice, onset_da, max_forecast_
                     #for day in range(forecast_bin_start, forecast_bin_end + 1):
                     for day in range(1, max_forecast_day + 1):
 
-                        isonset = detect_onset(day, forecast_series, wet_init, 
-                                               wet_spell, thresh, dry_spell, dry_threshold, dry_extent)
+                        #isonset = detect_onset(day, forecast_series, thresh, wet_init, wet_spell,
+                        #                       dry_spell, dry_threshold, dry_extent)
+                        isonset = detect_onset(day, forecast_series, thresh, **kwargs)
 
                         if isonset:
                             # Calculate the actual date this forecast day represents

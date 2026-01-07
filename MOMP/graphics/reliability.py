@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.plot as plt
 
-def plot_reliability_diagram(combined_forecast_obs, years, max_forecast_day, save_fig, fig_dir, **kwargs):
+#def plot_reliability_diagram(combined_forecast_obs, years, max_forecast_day, save_fig, fig_dir, **kwargs):
+def plot_reliability_diagram(combined_forecast_obs, max_forecast_day, save_fig, fig_dir, **kwargs):
     """Plot reliability diagram from forecast-observation pairs."""
 
     n_bins = 10
@@ -80,10 +81,11 @@ def plot_reliability_diagram(combined_forecast_obs, years, max_forecast_day, sav
     ax.set_xlabel('Forecast Probability', fontsize=12)
     ax.set_ylabel('Observed Frequency', fontsize=12)
 
-    if len(years) > 1:
-        year_str = f"{min(years)}-{max(years)}"
-    else:
-        year_str = str(years[0])
+# this block has not been used, so no need years in the function args
+#    if len(years) > 1:
+#        year_str = f"{min(years)}-{max(years)}"
+#    else:
+#        year_str = str(years[0])
 
     ax.grid(True, alpha=0.3)
     ax.set_xlim(0, 1)

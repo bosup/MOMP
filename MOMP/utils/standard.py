@@ -9,16 +9,26 @@ def dim_fmt(ds):
 
         ds = ds.rename({lat_coords: "lat", lon_coords: "lon"})
 
+#    if "time" not in coord_list:
+#        print("time NOT in coords --> ")  # , model_name)
+#        time_coords = [variable for variable in coord_list if "TIME" in variable][0]
+#        ds = ds.rename({time_coords: "time"})
+
     if "time" not in coord_list:
-        print("time NOT in coords --> ")  # , model_name)
-        time_coords = [variable for variable in coord_list if "TIME" in variable][0]
+        keywords = ["time", 'date']
+        time_coords = [
+            variable
+            for variable in coord_list
+            if any(keyword in variable.lower() for keyword in keywords)
+        ][0]
         ds = ds.rename({time_coords: "time"})
 
+    return ds
     return ds
 
 
 def dim_fmt_model(ds):
-    """Standardize dimension names for reforecast model data"""
+    """Standardize dimension names for deterministic reforecast model data"""
     coord_list = list(ds.coords.keys())
 
     if "lon" not in coord_list:
@@ -33,6 +43,24 @@ def dim_fmt_model(ds):
         time_coords = [variable for variable in coord_list if "time" in variable.lower()][0]
         ds = ds.rename({time_coords: "init_time"})
 
+    if "step" not in coord_list:
+        keywords = ["day"]
+        step_coords = [
+            variable
+            for variable in coord_list
+            if any(keyword in variable.lower() for keyword in keywords)
+        ][0]
+        ds = ds.rename({step_coords: "step"})
+
+    return ds
+
+
+def dim_fmt_model_ensemble(ds):
+    """Standardize dimension names for probabilistic reforecast model data"""
+
+    ds = dim_fmt_model(ds)
+
+    coord_list = list(ds.coords.keys())
 
     if "member" not in coord_list:
         keywords = ["number", "sample"]
@@ -40,24 +68,10 @@ def dim_fmt_model(ds):
             variable
             for variable in coord_list
             if any(keyword in variable.lower() for keyword in keywords)
-        ]
+        ][0]
         ds = ds.rename({ensemble_coords: "member"})
-
-
-    if "step" not in coord_list:
-        keywords = ["day"]
-        step_coords = [
-            variable
-            for variable in coord_list
-            if any(keyword in variable.lower() for keyword in keywords)
-        ]
-        ds = ds.rename({step_coords: "step"})
 
     return ds
 
-
-##case
-#unit_cvt
-#var_name
 
 

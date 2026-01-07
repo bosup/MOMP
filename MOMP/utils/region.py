@@ -1,16 +1,17 @@
 import xcdat as xc
 import xarray as xr
+from MOMP.params.region_def import domain
 
-def domain(region, **kwargs):
-    # swap = False
-
-    if region == "Ethiopia":
-        lats = 3
-        latn = 15
-        lonw = 33
-        lone = 48
-
-    return lats, latn, lonw, lone
+#def domain(region, **kwargs):
+#    # swap = False
+#
+#    if region == "Ethiopia":
+#        lats = 3
+#        latn = 15
+#        lonw = 33
+#        lone = 48
+#
+#    return lats, latn, lonw, lone
 
 
 def lon_swap(ds_tag, region, **kwargs):
@@ -63,7 +64,7 @@ def lat_swap(ds_tag):
 
 
 def coords_fmt(ds_tag, region, **kwargs):
-    ds_tag = time_swap(ds_tag)
+    #ds_tag = time_swap(ds_tag)
     lats, latn, lonw, lone, ds_tag = lon_swap(ds_tag, region, **kwargs)
     ds_tag = lat_swap(ds_tag)
 

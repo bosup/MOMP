@@ -8,7 +8,7 @@ from MOMP.lib.loader import cfg, setting
 
 
 #def bin_skill_score(BSS, RPS, AUC, skill_score, ref_model, ref_model_dir,
-#                         years, years_clim, model, model_forecast_dir, imd_folder, thres_file
+#                         years, years_clim, model, model_forecast_dir, obs_dir, thres_file
 #                         members, max_forecast_day, day_bins, date_filter_year,
 #                         file_pattern, mok, save_csv_score, plot_heatmap, **kwargs):
 
@@ -29,7 +29,8 @@ def skill_score_in_bins(cfg=cfg, setting=setting):
         
         # save score results as csv file
         if save_csv_score:
-            save_score_results(score_results, model, **case_cfg)
+            #save_score_results(score_results, model, **case_cfg)
+            save_score_results(score_results, **case_cfg)
         
         # heatmap plot
         if plot_heatmap:

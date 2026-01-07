@@ -1,30 +1,31 @@
 #Monsoon Onset Metrics Package (MOMP) configuration n parameters
 
 #=======  MOMP structure and dimension setting =======
-#json_structure = ("REF", "RESULTS",)  # frozen with MOMP version
 layout = ("model", "verification_window",)  # frozen with MOMP version
-
 model_list = ("AIFS", "NGCM",)
-ref_model = "climatology"
-
 
 #====== input data and region mask ======
-imd_folder = 'data'
+obs = "IMD"
+obs_dir = 'data'
+obs_file_pattern = ("{}.nc", "data_{}.nc")
+obs_var = "RAINFALL"
+
+ref_model = "climatology"
+ref_model_dir = 'data/ref' # reference forecast model if not climatology
+ref_model_file_pattern = ("{}.nc", "data_{}.nc")
+ref_model_var = "RAINFALL"
 
 thresh_file = "data/mwset2x2.nc4 " # set to None if using scalar threshold
 thresh_var = "MWmean"
 
-model_dir_list = ('data', '/scratch/model/')
-ref_model_dir = 'data/ref' # reference forecast model if not climatology
-
-model_var_list = ("rainfall","tp")
-unit_cvt_list = (0, 1000)
+model_dir_list = ('data', '/scratch/model')
+model_var_list = ("total_precipitation_24hr","tp")
+unit_cvt_list = (None, 1000)
 file_pattern_list = ("{}.nc", "{}.nc")
 
-shpfile_path = "data"
+shpfile = "data/india_shapefile.shp"
 
-#model_in_list
-#forecast_in_list
+region = "Ethiopia"
 
 #====== onset definition =====
 wet_init = 1 #the first wet day rainfall threshold (mm)
@@ -34,7 +35,7 @@ dry_threshold = 5 #accumulated rainfall (mm)
 dry_spell = 10 #dry spell duration followed by wet spell
 dry_extent = 30 #dry spell searching window after wet spell, must >=dry_spell
 
-onset_perctentage_threshold = 0.5
+onset_percentage_threshold = 0.5 #for probabilistic forecast
 
 #====== evaluation period =====
 
@@ -48,8 +49,8 @@ fallback_date = (4,1) # adjust obs start_date if onset earlier than start_date
 
 mok = (6,2) # (month, day)
 
-years = None # (2019,2020,2021,2022,2023,2024) # years to included in forecast model, set to None if using year_start
-years_clim = None # (2019,2020,2021,2022,2023,2024) # years to calculate climatology, set to None if using year_start_clim
+years = (2019,2020,2021,2022,2023,2024) # years to included in forecast model, set to "All" if using year_start
+years_clim = (2019,2020,2021,2022,2023,2024) # years to calculate climatology, set to "All" if using year_start_clim
 
 init_days = (0, 3,) #keep the trailing comma if more than one initialization days
 date_filter_year = 2024
@@ -60,7 +61,7 @@ verification_window_list = ((1,15),(16,30),) #Days after initialization to start
 
 tolerance_days_list =  (3, 5,) #Tolerance in days for onset prediction 
 
-max_forecast_days = 15
+max_forecast_day = 15
 
 day_bins = ((1, 5), (6, 10), (11, 15)) # for bin statistics
 
@@ -70,10 +71,11 @@ day_bins = ((1, 5), (6, 10), (11, 15)) # for bin statistics
 FAR = True
 MAE = True
 MR = True
-#CSI = False
+CSI = False
 
 #------ probabilistic -----
 probabilistic = False
+climatology = True
 
 members = (1,2,3,4,5)
 
@@ -90,7 +92,7 @@ skill_score = True
 dir_out = "output"
 dir_fig = "figures"
 
-fout_spatial_far_mr_mae = "spatial_metrics.nc"
+#fout_spatial_far_mr_mae = "spatial_metrics_{}.nc"
 
 save_fig = True
 
@@ -106,7 +108,6 @@ plot_reliability = False
 plot_portrait = False
 
 
-#case:
 #tolerance_day # different for verification window
 
 

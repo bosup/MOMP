@@ -2,26 +2,25 @@ from MOMP.io.input import load_imd_rainfall, load_thresh_file, get_initializatio
 from MOMP.stats.detect import detect_observed_onset
 from MOMP.stats.benchmark import compute_onset_metrics_with_windows
 
-
 import numpy as np
 import xarray as xr
 import pandas as pd
 from datetime import datetime, timedelta
-import os
-import glob
-from pathlib import Path
-import warnings
-from matplotlib.patches import Polygon
-from matplotlib.path import Path
-import matplotlib.patches as patches
+#import os
+#import glob
+#from pathlib import Path
+#import warnings
+#from matplotlib.patches import Polygon
+#from matplotlib.path import Path
+#import matplotlib.patches as patches
 
 
-def compute_climatological_onset(imd_folder, thres_file, mok, years_clim, **kwargs):
+def compute_climatological_onset(*, obs_dir, thres_file, mok, years_clim, obs_file_pattern, obs_var, **kwargs):
     """
     Compute climatological onset dates from all available IMD files.
     
     Parameters:
-    imd_folder: str, folder containing IMD NetCDF files
+    obs_dir: str, folder containing IMD NetCDF files
     thres_file: str, path to threshold file
     mok: bool, if True use June 2nd as start date (MOK), if False use May 1st
     
@@ -29,19 +28,16 @@ def compute_climatological_onset(imd_folder, thres_file, mok, years_clim, **kwar
     climatological_onset_doy: xarray DataArray with climatological onset day of year
     """
     
-    #years = kwargs['years']
-    years = years_clim
-
     thres_da = load_thresh_file(thresh_file, **kwargs)
     
-    print(f"Computing climatological onset from {len(years)} years: {min(years)}-{max(years)}")
+    print(f"Computing climatological onset from {len(years_clim)} years_clim: {min(years_clim)}-{max(years_clim)}")
     
     all_onset_days = []
     
-    for year in years:       
+    for year in years_clim:       
         try:
             # Load rainfall data using the existing function that handles both patterns
-            rainfall_ds = load_imd_rainfall(year, imd_folder, **kwargs)
+            rainfall_ds = load_imd_rainfall(year, **kwargs)
             
             # Detect onset for this year
             onset_da = detect_observed_onset(rainfall_ds, thres_da, year, mok=mok, **kwargs)
@@ -219,13 +215,13 @@ def compute_climatology_as_forecast(climatological_onset_doy, year, init_dates, 
 ###=========  for bin climatology ============
 
 ## This function computes onset dates for all available years in IMD folder and creates a climatological onset dataset
-def compute_climatological_onset_dataset(imd_folder, thresh_file, years_clim, mok, **kwargs):
+def compute_climatological_onset_dataset(obs_dir, thresh_file, years_clim, mok, **kwargs):
     """
     Compute onset dates for all available years in IMD folder and create a climatological dataset.
 
     Parameters:
     -----------
-    imd_folder : str
+    obs_dir : str
         Folder containing IMD NetCDF files
     thresh_slice : xarray.DataArray
         Rainfall threshold for each grid point
@@ -258,7 +254,7 @@ def compute_climatological_onset_dataset(imd_folder, thresh_file, years_clim, mo
 
         try:
             # Load rainfall data for this year
-            rainfall_ds = load_imd_rainfall(year, imd_folder)
+            rainfall_ds = load_imd_rainfall(year, obs_dir)
 
             # Select the same spatial domain as thresh_slice
             rainfall_slice = rainfall_ds

@@ -33,7 +33,7 @@ def get_target_bins(brier_forecast, brier_climatology):
 
 
 # Function to create forecast-observation pairs with specified day bins for probabilistic verification
-def create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, day_bins=day_bins, max_forecast_day=15, **kwargs):
+def create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, *, day_bins, max_forecast_day, **kwargs):
     """
     Create forecast-observation pairs using specified day bins, including a final bin for "after max_forecast_day".
     
@@ -50,8 +50,8 @@ def create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, day
         Maximum forecast day. Members without onset get assigned to "after day X" bin
     """
 
-    day_bins = kwargs["stats_day_bins"]
-    max_forecast_day = kwargs["max_forecast_day"]
+    #day_bins = kwargs["stats_day_bins"]
+    #max_forecast_day = kwargs["max_forecast_day"]
 
     results_list = []
 
@@ -171,7 +171,8 @@ def create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, day
 
 
 ## This function creates forecast-observation pairs using climatological ensemble where each year is a member
-def create_climatological_forecast_obs_pairs(clim_onset, target_year, init_dates, day_bins, max_forecast_day=15, mok=True, **kwargs):
+def create_climatological_forecast_obs_pairs(clim_onset, target_year, init_dates, *, 
+                                             day_bins, max_forecast_day, mok, **kwargs):
     """
     Create forecast-observation pairs using climatological ensemble where each year is a member.
     Uses day-of-year instead of calendar dates for onset comparison.
@@ -423,23 +424,28 @@ def create_climatological_forecast_obs_pairs(clim_onset, target_year, init_dates
 
 
 # This function creates the observed forecast pairs for multiple years (core monsoon zone grids) and combines them
-def multi_year_forecast_obs_pairs(years, model_forecast_dir, imd_folder, thres_file, members, max_forecast_day, day_bins, mok=True, date_filter_year=2024, file_pattern = '{}.nc', **kwargs):
+def multi_year_forecast_obs_pairs(years, *, model_dir, obs_dir, obs_file_pattern, obs_var,
+                                  thresh_file, thresh_var, wet_threshold,
+                                  date_filter_year, init_days, start_date, end_date,
+                                  model_var, unit_cvt, file_pattern,
+                                  wet_init, wet_spell, dry_spell, dry_threshold, dry_extent, fallback_date, mok,
+                                  members, onset_percentage_threshold, max_forecast_day, day_bins, **kwargs):
     """Main function to perform multi-year reliability analysis."""
 
-    members = kwargs['members']
-    probabilistic = kwargs['probabilistic']
+    #members = kwargs['members']
+    #probabilistic = kwargs['probabilistic']
 
-    mok = kwargs["mok"]
-    window = kwargs["wet_spell"]
-    wet_init = kwargs["wet_init"]
-    dry_spell = kwargs["dry_spell"]
-    dry_extent = kwargs["dry_extent"]
-    dry_threshold = kwargs["dry_threshold"]
-    max_forecast_day = kwargs['max_forecast_day']
+    #mok = kwargs["mok"]
+    #window = kwargs["wet_spell"]
+    #wet_init = kwargs["wet_init"]
+    #dry_spell = kwargs["dry_spell"]
+    #dry_extent = kwargs["dry_extent"]
+    #dry_threshold = kwargs["dry_threshold"]
+    #max_forecast_day = kwargs['max_forecast_day']
 
     print(f"Processing years: {years}")
 
-    thresh_slice = load_thresh_file(thresh_file, **kwargs)
+    thresh_slice = load_thresh_file(**kwargs)
 
     # Initialize list to store all forecast-observation pairs
     all_forecast_obs_pairs = []
@@ -453,25 +459,25 @@ def multi_year_forecast_obs_pairs(years, model_forecast_dir, imd_folder, thres_f
         try:            
             # Load model and observation data
             print("Loading S2S model data...")
-            p_model,_ = get_forecast_probabilistic_twice_weekly(year, model_forecast_dir, members, date_filter_year, file_pattern, **kwargs)
+            p_model,_ = get_forecast_probabilistic_twice_weekly(year, **kwargs)
 #            p_model_slice = p_model.sel(lat=inside_lats, lon=inside_lons)
             p_model_slice = p_model # !!!!! region subset
                     
             print("Loading IMD rainfall data...")
-            rainfall_ds = load_imd_rainfall(year, imd_folder)
+            rainfall_ds = load_imd_rainfall(year, **kwargs)
 #            rainfall_ds_slice = rainfall_ds.sel(lat=inside_lats, lon=inside_lons)
             rainfall_ds_slice = rainfall_ds #!!!!! region subset
 
             print("Detecting observed onset...")
-            onset_da = detect_observed_onset(rainfall_ds_slice, thresh_slice, year, mok, **kwargs)
+            onset_da = detect_observed_onset(rainfall_ds_slice, thresh_slice, year, **kwargs)
             print(f"Found onset in {(~pd.isna(onset_da.values)).sum()} out of {onset_da.size} grid points")
                         
             print("Computing onset for all ensemble members...")
-            onset_all_members, _ = compute_onset_for_all_members(p_model_slice, thresh_slice, onset_da, max_forecast_day=max_forecast_day, mok=True, **kwargs)
+            onset_all_members, _ = compute_onset_for_all_members(p_model_slice, thresh_slice, onset_da, **kwargs)
             print(f"Found onset in {onset_all_members['onset_day'].notna().sum()} member cases")
     
             print("Creating forecast-observation pairs...")
-            forecast_obs_pairs = create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, day_bins, max_forecast_day=max_forecast_day, **kwargs)
+            forecast_obs_pairs = create_forecast_observation_pairs_with_bins(onset_all_members, onset_da, **kwargs)
 
             # Add to master list
             all_forecast_obs_pairs.append(forecast_obs_pairs)
@@ -499,7 +505,7 @@ def multi_year_forecast_obs_pairs(years, model_forecast_dir, imd_folder, thres_f
 
 
 
-def multi_year_climatological_forecast_obs_pairs(clim_onset, years_clim, day_bins, members, model_forecast_dir, date_filter_year=2024, max_forecast_day=15, mok=True, **kwargs):
+def multi_year_climatological_forecast_obs_pairs(clim_onset, years_clim, day_bins, members, model_dir, date_filter_year=2024, max_forecast_day=15, mok=True, **kwargs):
     """
     Create climatological forecast-observation pairs for multiple target years.
 
@@ -532,17 +538,14 @@ def multi_year_climatological_forecast_obs_pairs(clim_onset, years_clim, day_bin
 
         try:
             # Get initialization dates for this year
-            init_dates = get_initialization_dates(target_year)
+            init_dates = get_initialization_dates(target_year, **kwargs)
 
 
             # Create forecast-observation pairs for this year
             forecast_obs_pairs = create_climatological_forecast_obs_pairs(
-                clim_onset=clim_onset_slice,
-                target_year=target_year,
-                init_dates=init_dates,
-                day_bins=day_bins,
-                max_forecast_day=max_forecast_day,
-                mok=mok,
+                clim_onset_slice,
+                target_year,
+                init_dates,
                 **kwargs
             )
 

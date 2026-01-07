@@ -1,0 +1,4 @@
+[project]
+name = "my-ultra-minimal-package"
+version = "0.0.1"
+description = "The absolute simplest pyproject.toml example."

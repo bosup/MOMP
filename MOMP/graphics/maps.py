@@ -1,5 +1,12 @@
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+from MOMP.params.region_def import polygon_boundary
+from MOMP.utils.land_mask import get_india_outline
 
-def plot_spatial_metrics(spatial_metrics, shpfile_path, figsize=(18, 6), save_path=None):
+
+def plot_spatial_metrics(spatial_metrics, shpfile=None, figsize=(18, 6), dir_fig="figure", case_name=None, **kwargs):
     """
     Plot spatial maps of Mean MAE, False Alarm Rate, and Miss Rate in a 1x3 subplot
     with India outline, CMZ polygon, grid values displayed, and CMZ averages.
@@ -20,24 +27,31 @@ def plot_spatial_metrics(spatial_metrics, shpfile_path, figsize=(18, 6), save_pa
     
     # Define Core Monsoon Zone bounding polygon coordinates based on resolution 
     polygon_defined = False
-    if abs(lat_diff - 2.0) < 0.1:  # 2-degree resolution
-        polygon1_lon = np.array([83, 75, 75, 71, 71, 77, 77, 79, 79, 83, 83, 89, 89, 85, 85, 83, 83])
-        polygon1_lat = np.array([17, 17, 21, 21, 29, 29, 27, 27, 25, 25, 23, 23, 21, 21, 19, 19, 17])
-        polygon_defined = True
-        print("Using 2-degree CMZ polygon coordinates")
-    elif abs(lat_diff - 4.0) < 0.1:  # 4-degree resolution
-        polygon1_lon = np.array([86, 74, 74, 70, 70, 82, 82, 86, 86])
-        polygon1_lat = np.array([18, 18, 22, 22, 30, 30, 26, 26, 18])
-        polygon_defined = True
-        print("Using 4-degree CMZ polygon coordinates")
-    elif abs(lat_diff - 1.0) < 0.1:  # 1-degree resolution
-        polygon1_lon = np.array([74, 85, 85, 86, 86, 87, 87, 88, 88, 88, 85, 85, 82, 82, 79, 79, 78, 78, 69, 69, 74, 74])
-        polygon1_lat = np.array([18, 18, 19, 19, 20, 20, 21, 21, 21, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 21, 21, 18])
-        polygon_defined = True
-        print("Using 1-degree CMZ polygon coordinates")        
-    else:
-        print(f"Resolution {lat_diff:.1f} degrees not supported for CMZ polygon. Plotting without polygon and CMZ averages.")
-        polygon_defined = False
+
+#    if abs(lat_diff - 2.0) < 0.1:  # 2-degree resolution
+#        polygon1_lon = np.array([83, 75, 75, 71, 71, 77, 77, 79, 79, 83, 83, 89, 89, 85, 85, 83, 83])
+#        polygon1_lat = np.array([17, 17, 21, 21, 29, 29, 27, 27, 25, 25, 23, 23, 21, 21, 19, 19, 17])
+#        polygon_defined = True
+#        print("Using 2-degree CMZ polygon coordinates")
+#    elif abs(lat_diff - 4.0) < 0.1:  # 4-degree resolution
+#        polygon1_lon = np.array([86, 74, 74, 70, 70, 82, 82, 86, 86])
+#        polygon1_lat = np.array([18, 18, 22, 22, 30, 30, 26, 26, 18])
+#        polygon_defined = True
+#        print("Using 4-degree CMZ polygon coordinates")
+#    elif abs(lat_diff - 1.0) < 0.1:  # 1-degree resolution
+#        polygon1_lon = np.array([74, 85, 85, 86, 86, 87, 87, 88, 88, 88, 85, 85, 82, 82, 79, 79, 78, 78, 69, 69, 74, 74])
+#        polygon1_lat = np.array([18, 18, 19, 19, 20, 20, 21, 21, 21, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 21, 21, 18])
+#        polygon_defined = True
+#        print("Using 1-degree CMZ polygon coordinates")        
+#    else:
+#        print(f"Resolution {lat_diff:.1f} degrees not supported for CMZ polygon. Plotting without polygon and CMZ averages.")
+#        polygon_defined = False
+
+    polygon1_lat, polygon1_lon = polygon_boundary(mean_mae)
+
+    if polygon1_lat and polygon1_lon:
+        polygon_defiened = True
+
 
     def calculate_cmz_averages(data_array, lons, lats, polygon_lon, polygon_lat):
         """Calculate spatial average within the CMZ polygon"""
@@ -136,7 +150,7 @@ def plot_spatial_metrics(spatial_metrics, shpfile_path, figsize=(18, 6), save_pa
                              cmap='OrRd', vmin=0, vmax=15, shading='flat')
     
     # Add India outline
-    india_boundaries = get_india_outline(shpfile_path)
+    india_boundaries = get_india_outline(shpfile)
     for boundary in india_boundaries:
         india_lon, india_lat = boundary
         axes[0].plot(india_lon, india_lat, color='black', linewidth=map_lw)
@@ -280,9 +294,11 @@ def plot_spatial_metrics(spatial_metrics, shpfile_path, figsize=(18, 6), save_pa
     plt.tight_layout()
     
     # Save if path provided
-    if save_path:
-        plt.savefig(save_path, dpi=600, bbox_inches='tight')
-        print(f"Figure saved to: {save_path}")
+    if dir_fig:
+        plot_filename = f"spatial_metrics_{case_name}.png"
+        plot_path = os.path.join(dir_fig, plot_filename)
+        plt.savefig(plot_path, dpi=600, bbox_inches='tight')
+        print(f"Figure saved to: {plot_path}")
     
     # Only print CMZ averages if polygon is defined
     if polygon_defined:

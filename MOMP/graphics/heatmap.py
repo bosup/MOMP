@@ -1,6 +1,9 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-def create_heatmap(model, max_forecast_day):
+from MOMP.stats.bins import get_target_bins
+
+def create_heatmap(score_results, model, max_forecast_day):
     """Create and save skill score heatmap"""
 
     auc_forecast =score_results['AUC']

@@ -1,14 +1,10 @@
-from MOMP.io.input import load_thresh_file, get_initialization_dates
-from MOMP.io.input import get_forecast_probabilistic_twice_weekly, get_forecast_deterministic_twice_weekly
-from MOMP.io.input import load_imd_rainfall
 #from MOMP.io.output import save_score_results
-from MOMP.stats.detect import detect_observed_onset, compute_onset_for_all_members
 from MOMP.stats.climatology import compute_climatological_onset_dataset
-from MOMP.stats.bins import get_target_bins, create_forecast_observation_pairs_with_bins, create_climatological_forecast_obs_pairs, multi_year_forecast_obs_pairs, multi_year_climatological_forecast_obs_pairs
+from MOMP.stats.bins import multi_year_forecast_obs_pairs, multi_year_climatological_forecast_obs_pairs
 from MOMP.stats.score import calculate_brier_score, calculate_auc, calculate_rps, calculate_brier_score_climatology, calculate_auc_climatology, calculate_skill_scores
 
 def create_score_results(BSS, RPS, AUC, skill_score, ref_model, ref_model_dir,
-                         years, years_clim, model, model_forecast_dir, imd_folder, thres_file
+                         years, years_clim, model, model_forecast_dir, obs_dir, thres_file
                          members, max_forecast_day, day_bins, date_filter_year,
                          file_pattern, mok, **kwargs):
 
