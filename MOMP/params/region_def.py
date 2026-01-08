@@ -11,6 +11,12 @@ def domain(region, **kwargs):
         lonw = 33
         lone = 48
 
+    if region == "India":
+        lats = 6.46
+        latn = 35.51
+        lonw = 68.11
+        lone = 91.4
+
     return lats, latn, lonw, lone
 
 

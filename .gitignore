@@ -8,6 +8,11 @@ __pycache__/
 # C extensions
 *.so
 
+# user specific input, output and figure
+data/
+figure/
+output/
+
 # Distribution / packaging
 .Python
 build/

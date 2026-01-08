@@ -112,6 +112,8 @@ class Setting:
     save_nc_spatial_far_mr_mae: bool = field(default=False)
     save_csv_score: bool = field(default=False)
 
+    polygon: bool = field(default=False)
+
     plot_spatial_far_mr_mae: bool = field(default=False)
     plot_heatmap: bool = field(default=False)
     plot_reliability: bool = field(default=False)

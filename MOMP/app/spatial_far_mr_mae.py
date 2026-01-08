@@ -31,7 +31,6 @@ def spatial_far_mr_mae_map(dic=cfg, setting=setting):#, **kwargs):
         if case_cfg["save_nc_spatial_far_mr_mae"]:
             #fout = file_path(kwargs['dir_out'], kwargs['fout_spatial_far_mr_mae'])
             #fout = os.path.join(setting.dir_out, setting.fout_spatial_far_mr_mae)
-            #fout = os.path.join(kwargs['dir_out'], kwargs['fout_spatial_far_mr_mae'])
             fout = os.path.join(case_cfg['dir_out'], "spatial_metrics_{}.nc")
             fout = fout.format(case.case_name)
         
@@ -45,7 +44,6 @@ def spatial_far_mr_mae_map(dic=cfg, setting=setting):#, **kwargs):
             ds.attrs['years'] = str(case_cfg['years'])
             ds.attrs['tolerance_days'] = case_cfg['tolerance_days']
             ds.attrs['verification_window'] = case_cfg['verification_window']
-            ds.attrs['forecast_days'] = case_cfg['forecast_days']
             ds.attrs['max_forecast_day'] = case_cfg['max_forecast_day']
             ds.attrs['mok_filter'] = int(bool((case_cfg['mok'])))  # Convert boolean to integer (0 or 1)
         

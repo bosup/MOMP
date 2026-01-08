@@ -14,7 +14,7 @@ from MOMP.params.region_def import domain
 #    return lats, latn, lonw, lone
 
 
-def lon_swap(ds_tag, region, **kwargs):
+def lon_swap(ds_tag, *, region, **kwargs):
     lats, latn, lonw, lone = domain(region, **kwargs)
 
     coord_list = list(ds_tag.coords.keys())
@@ -63,7 +63,7 @@ def lat_swap(ds_tag):
     return ds_tag
 
 
-def coords_fmt(ds_tag, region, **kwargs):
+def coords_fmt(ds_tag, *, region, **kwargs):
     #ds_tag = time_swap(ds_tag)
     lats, latn, lonw, lone, ds_tag = lon_swap(ds_tag, region, **kwargs)
     ds_tag = lat_swap(ds_tag)
@@ -71,7 +71,7 @@ def coords_fmt(ds_tag, region, **kwargs):
     return lats, latn, lonw, lone, ds_tag
 
 
-def region_select(ds, region):
+def region_select(ds, *, region, **kwargs):
 
     lats, latn, lonw, lone, ds = coords_fmt(ds, region)
 

@@ -25,8 +25,6 @@ model_var_list = ("total_precipitation_24hr","tp")
 unit_cvt_list = (None, 1000)
 file_pattern_list = ("{}.nc", "{}.nc")
 
-shpfile = "data/india_shapefile.shp"
-
 region = "Ethiopia"
 
 #====== onset definition =====
@@ -73,7 +71,7 @@ day_bins = ((1, 5), (6, 10), (11, 15)) # for bin statistics
 FAR = True
 MAE = True
 MR = True
-CSI = False
+#CSI = False
 
 #------ probabilistic -----
 probabilistic = False
@@ -104,13 +102,17 @@ save_csv_score = False
 
 
 #====== graphics =====
+
+shpfile = "data/india_shapefile.shp"
+
+polygon = False
+
 plot_spatial_far_mr_mae = False
 plot_heatmap = False
 plot_reliability = False
 plot_portrait = False
 
 
-#tolerance_day # different for verification window
 
 
 

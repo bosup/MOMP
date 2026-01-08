@@ -2,6 +2,7 @@ import importlib.resources
 import pandas as pd
 import xarray as xr
 from MOMP.utils.standard import dim_fmt, dim_fmt_model, dim_fmt_model_ensemble
+from MOMP.utils.region import region_select
 
 def set_dir(folder):
     """
@@ -52,7 +53,7 @@ def get_initialization_dates(year, *, date_filter_year, init_days, start_date, e
     return filtered_dates_yr
 
 
-def load_imd_rainfall(year, *, obs_dir, obs_file_pattern, obs_var, **kwargs):
+def load_imd_rainfall(year, *, obs_dir, obs_file_pattern, obs_var, obs_unit_cvt, region, **kwargs):
     """Load IMD daily rainfall NetCDF for a given year."""
 
     #file_patterns = [f"data_{year}.nc", f"{year}.nc"]
@@ -77,17 +78,23 @@ def load_imd_rainfall(year, *, obs_dir, obs_file_pattern, obs_var, **kwargs):
     print(f"Loading observation rainfall from: {obs_file}")
 
     ds = xr.open_dataset(obs_file)
-    rainfall = ds[obs_var]
 
     # Standardize dimension names
-
     ds = dim_fmt(ds)
+
+    ds = region_select(ds, **kwargs)
+
+    rainfall = ds[obs_var]
+
+    if obs_unit_cvt:
+        rainfall *= obs_unit_cvt
+
 
     return rainfall
 
 
 def get_forecast_deterministic_twice_weekly(year, *, model_dir, model_var, date_filter_year, init_days, 
-                                            start_date, end_date, unit_cvt, file_pattern, **kwargs):
+                                            start_date, end_date, unit_cvt, file_pattern, region, **kwargs):
     """
     Loads model precip data for twice-weekly initializations from May to July.
     Filters for Mondays and Thursdays in the specified year.
@@ -126,6 +133,8 @@ def get_forecast_deterministic_twice_weekly(year, *, model_dir, model_var, date_
         raise ValueError(f"No matching initialization times found for year {year}")
     ds = ds.sel(init_time=matching_times)
 
+    ds = region_select(ds, **kwargs)
+
     # Check if 'step' dimension exists and conditionally slice
     if 'step' in ds.dims:
         # Check if the first value of 'step' is 0, then slice to exclude it
@@ -145,7 +154,7 @@ def get_forecast_deterministic_twice_weekly(year, *, model_dir, model_var, date_
 
 def get_forecast_probabilistic_twice_weekly(year, *, model_dir, model_var, date_filter_year, init_days,
                                             start_date, end_date, unit_cvt, file_pattern,
-                                            members, **kwargs):
+                                            members, region, **kwargs):
     """
     Loads model precip data for twice-weekly initializations from May to July.
     """
@@ -188,6 +197,8 @@ def get_forecast_probabilistic_twice_weekly(year, *, model_dir, model_var, date_
     #ds = ds.isel(member =slice(0, mem_num))  # limit to first mem_num members (0-mem_num)
     if members:
         ds = ds.isel(member = members)
+
+    ds = region_select(ds, **kwargs)
 
     p_model = ds[model_var]  # in mm
 
