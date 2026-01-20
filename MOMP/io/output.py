@@ -17,17 +17,23 @@ def save_score_results(score_results, *, model, max_forecast_day, dir_out, **kwa
             
     # Save overall scores
     overall_scores = {
-        'Metric': ['AUC', 'Fair Brier Score', 'Fair Brier Skill Score', 'Fair RPS', 'Fair RPS Skill Score'],
+        'Metric': ['Fair_Brier_Score', 'Fair_Brier_Skill_Score', 'Fair_RPS', 'Fair_RPS_Skill_Score', 'AUC', 'AUC_ref'],
         'Score': [
-            score_results['AUC']['auc'],
             score_results['BS']['fair_brier_score'],
             score_results['skill_results']['fair_brier_skill_score'],
             score_results['RPS']['fair_rps'],
-            score_results['skill_results']['fair_rps_skill_score']
+            score_results['skill_results']['fair_rps_skill_score'],
+            score_results['AUC']['auc'],
+            score_results['AUC_ref']['auc'],
         ]
     }
 
-    overall_df = pd.DataFrame(overall_scores)
+    overall_scores_nested = dict(zip(overall_scores['Metric'], overall_scores['Score']))
+
+    #overall_df = pd.DataFrame(overall_scores)
+    # pd.DataFrame expects lists/arrays as values, or a list of dicts for rows, not a dict of scalars
+    # Wrap the dict in a list so pandas treats it as a single row, or make each value wrapped in a list []
+    overall_df = pd.DataFrame([overall_scores_nested])
     overall_filename = f'overall_skill_scores_{model}_{max_forecast_day}day.csv'
                         #{model}_{tuple_to_str(verification_window)}window_{max_forecast_day}day.csv'
     overall_filename = os.path.join(dir_out, overall_filename)
@@ -37,12 +43,15 @@ def save_score_results(score_results, *, model, max_forecast_day, dir_out, **kwa
 
     # Get target bins
     target_bins = get_target_bins(score_results['BS'], score_results['BS_ref'])
+    clean_bins = [b.replace("Days ", "") for b in target_bins]
 
     # Save binned scores
     binned_data = {
         'Bin': target_bins,
+        'clean_bins': clean_bins,
         'Fair_Brier_Skill_Score': [score_results['skill_results']['bin_fair_brier_skill_scores'].get(bin_name, np.nan) for bin_name in target_bins],
         'AUC': [score_results['AUC']['bin_auc_scores'].get(bin_name, np.nan) for bin_name in target_bins],
+        'AUC_ref': [score_results['AUC_ref']['bin_auc_scores'].get(bin_name, np.nan) for bin_name in target_bins],
         'Fair_Brier_Score_Forecast': [score_results['BS']['bin_fair_brier_scores'].get(bin_name, np.nan) for bin_name in target_bins],
         'Fair_Brier_Score_Climatology': [score_results['BS_ref']['bin_fair_brier_scores'].get(bin_name, np.nan) for bin_name in target_bins]
     }
@@ -53,6 +62,8 @@ def save_score_results(score_results, *, model, max_forecast_day, dir_out, **kwa
     binned_df.to_csv(binned_filename, index=False)
     print(f"Saved binned scores to '{binned_filename}'")
     print(binned_df)
+
+    return binned_data, overall_scores_nested
 
 
 
@@ -106,7 +117,7 @@ def save_metrics_to_netcdf(spatial_metrics, attrs_dict, desc_dict=None, fname='s
     ds = xr.Dataset(spatial_metrics)
 
     fout = os.path.join(attrs_dict['dir_out'], "{}_{}.nc")
-    fout = fout.format(fname, attrs_dict.get('case_name', 'missing case name'))
+    fout = fout.format(fname, attrs_dict.get('case_name', 'missing_case_name'))
 
     #allowed_attrs = ['model', 'years', 'tolerance_days', 'verification_window', 'max_forecast_day', 'mok']
 
@@ -191,7 +202,9 @@ def nested_dict_to_array(nested_dict, metric_key):
     for i, rkey in enumerate(row_labels):
         for j, ckey in enumerate(col_labels):
             # Safely get the value (default to np.nan if missing)
-            arr[i, j] = nested_dict.get(rkey, {}).get(ckey, {}).get(metric_key, np.nan)
+            #arr[i, j] = nested_dict.get(rkey, {}).get(ckey, {}).get(metric_key, np.nan)
+            da = nested_dict.get(rkey, {}).get(ckey, {}).get(metric_key, np.nan)
+            arr[i,j] = da.mean()
 
     return arr, row_labels, col_labels
 

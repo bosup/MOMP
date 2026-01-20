@@ -3,7 +3,7 @@ import argparse
 
 def create_parser(config, cli_args=None):
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="MOMP Package Parameter Loader")
 
     #parser.add_argument("-p", "--param", required=True)
 

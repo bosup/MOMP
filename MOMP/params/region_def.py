@@ -47,4 +47,24 @@ def polygon_boundary(da):
     return polygon1_lat, polygon1_lon
 
 
+def add_polygon(ax, da, polygon, return_polygon=False):
+    from matplotlib.patches import Polygon
+    from MOMP.params.region_def import polygon_boundary
+
+    if polygon:
+        polygon1_lat, polygon1_lon = polygon_boundary(da)
+
+    if len(polygon1_lat) > 0 and len(polygon1_lon) > 0:
+        polygon_defined = True
+
+    # Add CMZ polygon only if defined
+    if polygon_defined:
+        polygon = Polygon(list(zip(polygon1_lon, polygon1_lat)),
+                         fill=False, edgecolor='black', linewidth=1.5)
+        ax.add_patch(polygon)
+
+    if return_polygon:
+        return ax, polygon1_lat, polygon1_lon, polygon_defined
+    else:
+        return ax
 

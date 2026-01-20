@@ -44,7 +44,7 @@ def dim_fmt_model(ds):
         ds = ds.rename({time_coords: "init_time"})
 
     if "step" not in coord_list:
-        keywords = ["day"]
+        keywords = ["day", "prediction_timedelta"]
         step_coords = [
             variable
             for variable in coord_list

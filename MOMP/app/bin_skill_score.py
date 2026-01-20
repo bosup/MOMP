@@ -4,11 +4,13 @@ from itertools import product
 from MOMP.metrics.skill import create_score_results
 from MOMP.graphics.heatmap import create_heatmap
 from MOMP.graphics.reliability import plot_reliability_diagram
+from MOMP.graphics.panel_portrait_skill import panel_portrait_bss_auc
 from MOMP.io.output import save_score_results
 from MOMP.lib.control import iter_list, make_case
 from MOMP.lib.convention import Case
 #from MOMP.lib.loader import cfg, setting
 from MOMP.lib.loader import get_cfg, get_setting
+#from MOMP.io.output import set_nested
 
 
 #def bin_skill_score(BSS, RPS, AUC, skill_score, ref_model, ref_model_dir,
@@ -16,14 +18,16 @@ from MOMP.lib.loader import get_cfg, get_setting
 #                         members, max_forecast_day, day_bins, date_filter_year,
 #                         file_pattern, mok, save_csv_score, plot_heatmap, **kwargs):
 
-cfg=get_cfg()
-setting=get_setting()
+cfg, setting = get_cfg(), get_setting()
 
 def skill_score_in_bins(cfg=cfg, setting=setting):
 
     # only execute for ensemble forecasts
     if not cfg.get('probabilistic'):
         return
+
+    result_overall = {}
+    result_binned = {}
 
     layout_pool = iter_list(cfg)
 
@@ -42,9 +46,13 @@ def skill_score_in_bins(cfg=cfg, setting=setting):
         
         # save score results as csv file
         if case_cfg['save_csv_score']:
-            #save_score_results(score_results, model, **case_cfg)
-            save_score_results(score_results, **case_cfg)
+            #save_score_results(score_results, **case_cfg)
+            binned_data, overall_scores = save_score_results(score_results, **case_cfg)
+
+        result_binned[case.model] = binned_data
+        result_overall[case.model] = overall_scores
         
+
         # heatmap plot
         if case_cfg['plot_heatmap']:
             create_heatmap(score_results, **case_cfg)
@@ -52,6 +60,29 @@ def skill_score_in_bins(cfg=cfg, setting=setting):
         # reliability plot
         if case_cfg['plot_reliability']:
             plot_reliability_diagram(score_results["forecast_obs_df"], **case_cfg)
+
+#    print("\n score_results \n ", score_results['skill_results']['bin_fair_brier_skill_scores'])
+#    print("\n binned_data \n", binned_data['Fair_Brier_Skill_Score'])
+
+
+#    if 2 > 1:
+#        import pickle
+#        fout = os.path.join(cfg['dir_out'],"combi_binned_skill_scores_results.pkl")
+#        with open(fout, "wb") as f:
+#            pickle.dump(result_binned, f)
+#
+#        fout = os.path.join(cfg['dir_out'],"combi_overall_skill_scores_results.pkl")
+#        with open(fout, "wb") as f:
+#            pickle.dump(result_overall, f)
+
+
+    # panel heatmap plot for binned BSS and AUC
+    if case_cfg['plot_panel_heatmap_skill']:
+        panel_portrait_bss_auc(result_binned, **case_cfg)
+
+    # bar plot for BSS, RPSS, AUC in window
+    if case_cfg['plot_bar_bss_rpss_auc']:
+        panel_bar_bss_rpss_auc(result_overall, **case_cfg)
 
 
 # ------------------------------------------------------------------------------

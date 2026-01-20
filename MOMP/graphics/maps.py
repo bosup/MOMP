@@ -3,12 +3,17 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from MOMP.params.region_def import polygon_boundary
-from MOMP.utils.land_mask import get_india_outline#, polygon_mask
+from MOMP.utils.land_mask import get_india_outline, shp_outline#, polygon_mask
 
 
-def calculate_cmz_averages(data_array, lons, lats, polygon_lon, polygon_lat):
+def calculate_cmz_averages(da, polygon_lon, polygon_lat):
     """Calculate spatial average within the CMZ polygon"""
     from matplotlib.path import Path
+
+    # Get coordinates
+    lats = da.lat.values
+    lons = da.lon.values
+
     polygon_path = Path(list(zip(polygon_lon, polygon_lat)))
     
     lon_grid, lat_grid = np.meshgrid(lons, lats)
@@ -16,7 +21,7 @@ def calculate_cmz_averages(data_array, lons, lats, polygon_lon, polygon_lat):
     points = np.column_stack((lon_grid.ravel(), lat_grid.ravel()))
     inside_polygon = polygon_path.contains_points(points).reshape(lon_grid.shape)
     
-    values_inside = data_array.values[inside_polygon]
+    values_inside = da.values[inside_polygon]
     
     if len(values_inside) > 0:
         return np.nanmean(values_inside)
@@ -24,7 +29,8 @@ def calculate_cmz_averages(data_array, lons, lats, polygon_lon, polygon_lat):
         return np.nan
 
 
-def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, dir_fig, figsize=(18, 6), **kwargs):
+#def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, dir_fig, figsize=(18, 6), **kwargs):
+def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, dir_fig, region, figsize=(18, 6), **kwargs):
     """
     Plot spatial maps of Mean MAE, False Alarm Rate, and Miss Rate in a 1x3 subplot
     with India outline, CMZ polygon, grid values displayed, and CMZ averages.
@@ -69,7 +75,7 @@ def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, di
             year_mae_map = spatial_metrics[mae_key]
             
             if polygon_defined and polygon_lon is not None:
-                cmz_avg = calculate_cmz_averages(year_mae_map, lons, lats, polygon_lon, polygon_lat)
+                cmz_avg = calculate_cmz_averages(year_mae_map, polygon_lon, polygon_lat)
                 if not np.isnan(cmz_avg):
                     cmz_yearly_averages.append(cmz_avg)
             
@@ -99,8 +105,8 @@ def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, di
             spatial_metrics, lons, lats, polygon1_lon, polygon1_lat
         )
         
-        cmz_far = calculate_cmz_averages(spatial_metrics['false_alarm_rate'] * 100, lons, lats, polygon1_lon, polygon1_lat)
-        cmz_mr = calculate_cmz_averages(spatial_metrics['miss_rate'] * 100, lons, lats, polygon1_lon, polygon1_lat)
+        cmz_far = calculate_cmz_averages(spatial_metrics['false_alarm_rate'] * 100, polygon1_lon, polygon1_lat)
+        cmz_mr = calculate_cmz_averages(spatial_metrics['miss_rate'] * 100, polygon1_lon, polygon1_lat)
     else:
         cmz_mae_mean, cmz_mae_se, overall_mae_mean, overall_mae_se = calculate_mae_stats_across_years(
             spatial_metrics, lons, lats, None, None
@@ -139,6 +145,8 @@ def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, di
         for boundary in india_boundaries:
             india_lon, india_lat = boundary
             axes[0].plot(india_lon, india_lat, color='black', linewidth=map_lw)
+    else:
+        shp_outline(axes[0], region=region)
     
     # Add CMZ polygon only if defined
     if polygon_defined:
@@ -183,6 +191,8 @@ def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, di
         for boundary in india_boundaries:
             india_lon, india_lat = boundary
             axes[1].plot(india_lon, india_lat, color='black', linewidth=map_lw)
+    else:
+        shp_outline(axes[1], region=region)
     
     # Add CMZ polygon only if defined
     if polygon_defined:
@@ -222,6 +232,8 @@ def plot_spatial_metrics(spatial_metrics, *, case_name, shpfile_dir, polygon, di
         for boundary in india_boundaries:
             india_lon, india_lat = boundary
             axes[2].plot(india_lon, india_lat, color='black', linewidth=map_lw)
+    else:
+        shp_outline(axes[2], region=region)
     
     # Add CMZ polygon only if defined
     if polygon_defined:

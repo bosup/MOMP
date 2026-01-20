@@ -206,7 +206,7 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, *,
     #date_method = "MOK (June 2nd filter)" if mok else "no date filter"
     print(f"Processing {len(init_times)} init times x {len(lats)} lats x {len(lons)} lons...")
     #print(f"Using {date_method} for onset detection")
-    print(f"Only processing forecasts initialized before observed onset dates")
+    #print(f"Only processing forecasts initialized before observed onset dates")
 
     #max_steps_needed = forecast_bin_end + window + dry_extent - forecast_bin_start  #to add dry spell option
     max_steps_needed = max_forecast_day + wet_spell + dry_extent - 1
@@ -218,8 +218,8 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, *,
     onsets_found = 0
 
     for t_idx, init_time in enumerate(init_times):
-        if t_idx % 5 == 0:
-            print(f"Processing init time {t_idx+1}/{len(init_times)}: {pd.to_datetime(init_time).strftime('%Y-%m-%d')}")
+        #if t_idx % 5 == 0:
+        #    print(f"Processing init time {t_idx+1}/{len(init_times)}: {pd.to_datetime(init_time).strftime('%Y-%m-%d')}")
 
         init_date = pd.to_datetime(init_time)
         year = init_date.year

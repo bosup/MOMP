@@ -94,7 +94,7 @@ class Setting:
     obs_dir: str = field(default="data")
     ref_model_dir: str = field(default="data")
 
-    shpfile_dir: str = field(default="data")
+    shpfile_dir: Optional[str] = field(default="data")
 
     obs_file_pattern: str = field(default="{}.nc")
     ref_model_file_pattern: str = field(default="{}.nc")
@@ -119,6 +119,9 @@ class Setting:
     plot_reliability: bool = field(default=False)
     plot_portrait: bool = field(default=False)
     plot_climatology_onset: bool = field(default=False)
+    plot_panel_heatmap_error: bool = field(default=False)
+    plot_panel_heatmap_skill: bool = field(default=False)
+    plot_bar_bss_rpss_auc: bool = field(default=False)
 
     debug: bool = field(default=False)
     project_name: str = field(default="MOMP application project")

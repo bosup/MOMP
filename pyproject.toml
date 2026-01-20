@@ -25,7 +25,8 @@ dependencies = [
   "seaborn",
   "regionmask",
   "gcsfs",
-  "zarr"
+  "zarr",
+  "cartopy"
 ]
 
 [project.optional-dependencies]

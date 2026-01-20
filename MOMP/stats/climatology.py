@@ -100,7 +100,7 @@ def compute_climatology_as_forecast(climatological_onset_doy, year, init_dates, 
     
     print(f"Processing climatology as forecast for {len(init_dates)} init times x {len(lats)} lats x {len(lons)} lons...")
     print(f"Year: {year}")
-    print(f"Only processing forecasts initialized before observed onset dates")
+    #print(f"Only processing forecasts initialized before observed onset dates")
     
     # Track statistics
     total_potential_inits = 0
@@ -111,8 +111,8 @@ def compute_climatology_as_forecast(climatological_onset_doy, year, init_dates, 
     
     # Loop over all initialization dates and grid points
     for t_idx, init_time in enumerate(init_dates):
-        if t_idx % 5 == 0:  # Print progress every 5 init times
-            print(f"Processing init time {t_idx+1}/{len(init_dates)}: {init_time.strftime('%Y-%m-%d')}")
+        #if t_idx % 5 == 0:  # Print progress every 5 init times
+        #    print(f"Processing init time {t_idx+1}/{len(init_dates)}: {init_time.strftime('%Y-%m-%d')}")
         
         init_date = pd.to_datetime(init_time)
         mok_date = datetime(year, *mok)  # June 2nd of the same year

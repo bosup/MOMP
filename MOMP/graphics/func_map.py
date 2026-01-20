@@ -13,18 +13,18 @@ from matplotlib import colors as mcolors
 from MOMP.utils.visual import cbar_season, set_basemap
 from MOMP.utils.land_mask import shp_outline, shp_mask
 
-def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, polygon, dir_fig, 
-                                   region, figsize=(18, 6), cbar_ssn=False, domain_mask=False, **kwargs):
+
+def spatial_metrics_map(da, model_name, var_name, *, years, shpfile_dir, polygon, dir_fig, region, 
+                    fig=None, ax=None, figsize=(8, 6), cmap='YlOrRd', n_colors=6, 
+                    cbar_ssn=False, domain_mask=False,
+                    vmin=0, vmax=15, show_ylabel=True, title=None, **kwargs):
     """
     Plot spatial maps of climatology onset day of year
     """
 
-    # Extract data
-    climatological_onset_doy = next(iter(onset_da_dict.values()))
-    
     # Get coordinates
-    lats = climatological_onset_doy.lat.values
-    lons = climatological_onset_doy.lon.values
+    lats = da.lat.values
+    lons = da.lon.values
     
     # Detect resolution from latitude spacing
     lat_diff = abs(lats[1] - lats[0])
@@ -45,55 +45,62 @@ def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, po
     else:
         txt_fsize = 8
     
-    # Define colormap levels for day of year - more refined levels
-    levels = np.arange(135, 245, 3)  # May 15 (135) to late September (270)
+    # Define colormap levels 
+    vmin, vmax = da.quantile([0.05, 0.95], dim=None, skipna=True).values
+    #levels = np.arange(vmin, vmax, (vmax-vmin)/10)
+    levels = linspace(vmin, vmax, 10)
 
+    cmap_discrete = plt.cm.get_cmap(cmap, n_colors)
+    if cbar_ssn:
+        cmap_jjas, norm_jjas, bounds = cbar_season()
+    elif n_colors > 0:
+        # Use a colormap (RdYlBu_r or similar) also 'RdYlGn_r', 'Spectral_r', or 'coolwarm'
+        cmap_jjas = cmap_discrete #plt.cm.Spectral
+        norm_jjas = mcolors.BoundaryNorm(levels, cmap_jjas.N, extend='max')
+    else:
+        cmap_jjas = cmap #plt.cm.Spectral
+        norm_jjas = mcolors.Normalize(vmin=vmin, vmax=vmax)  # set explicit min/max
+
+    # -----------------------------------------------------------------------------
     # create figure obj and ax
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+    if fig is None:
+        fig = plt.figure(figsize=(8, 6))
+    if ax is None:
+        ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
 
     # set map extent, country boundary, gridline
-    set_basemap(ax, region, shpfile_dir, polygon, **kwargs)
+    ax, gl = set_basemap(ax, region, shpfile_dir, polygon, **kwargs)
+
+#    # this block doesn't work since set_basemap use gl
+#    ax.grid(False)
+#    ax.set_axisbelow(False)
+#    ax.tick_params('both', length=tick_length, width=tick_width, which='major')
+#    ax.tick_params(axis='x', which='minor', bottom=False, top=False)
+#    ax.tick_params(axis='y', which='minor', left=False, right=False)
 
     # Define Core Monsoon Zone bounding polygon coordinates based on resolution 
     if polygon:
         ax, polygon1_lat, polygon1_lon, polygon_defined = \
-                                    add_polygon(ax, climatological_onset_doy, polygon, return_polygon=True)
-
+                                    add_polygon(ax, da, polygon, return_polygon=True)
 
     # Calculate statistics (only calculate CMZ stats if polygon is defined)
     if polygon_defined:
-        cmz_onset_mean = calculate_cmz_averages(climatological_onset_doy, polygon1_lon, polygon1_lat)
+        cmz_onset_mean = calculate_cmz_averages(da, polygon1_lon, polygon1_lat)
     else:
         cmz_onset_mean = np.nan
-    
-    if cbar_ssn:
-        cmap_jjas, norm_jjas, bounds = cbar_season()
-    else:
-        # Use a colormap (RdYlBu_r or similar) also 'RdYlGn_r', 'Spectral_r', or 'coolwarm'
-        cmap_jjas = plt.cm.Spectral
-        norm_jjas = mcolors.BoundaryNorm(levels, cmap_jjas.N, extend='max')
-
 
     # mask data inside country boundary
     if domain_mask:
-        climatological_onset_doy = shp_mask(climatological_onset_doy, region=region)
-
-    vmin, vmax = climatological_onset_doy.quantile([0.05, 0.95], dim=None, skipna=True).values
-    #vmin, vmax = np.nanpercentile(climatological_onset_doy.values, [5, 95])
-
-    # mask invalid data, deprecated, use xarray syntax instead
-    #masked_onset = np.ma.masked_invalid(climatological_onset_doy.values)
-    #vmin, vmax = np.nanpercentile(masked_onset.compressed(), [5, 95])
+        da = shp_mask(da, region=region)
 
 
     # Plot discrete values at each grid point using pcolormesh with custom colormap
-    im = ax.pcolormesh(climatological_onset_doy.lon, climatological_onset_doy.lat, climatological_onset_doy.values, 
+    im = ax.pcolormesh(da.lon, da.lat, da.values, 
                      cmap=cmap_jjas, norm=norm_jjas, transform=ccrs.PlateCarree(), shading='auto')
     
 
     # Add colorbar with MMM DD labels for every other tick
-    cbar = plt.colorbar(im, ax=ax, orientation='vertical', pad=0.02, shrink=0.6, aspect=20)
+    cbar = fig.colorbar(im, ax=ax, orientation='vertical', pad=0.02, shrink=0.6, aspect=20)
     
     if cbar_ssn:
         # Create tick positions - use every other bound for labeling
@@ -112,14 +119,18 @@ def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, po
 
     cbar.set_ticklabels(tick_labels)
     
-    cbar.set_label('Mean onset date', fontsize=12, fontweight='normal')
+    cbar.set_label(var_name, fontsize=12, fontweight='normal')
     cbar.ax.tick_params(labelsize=10)    
 
+    # Add model name text in top-right
+    ax.text(0.95, 0.95, model_name, transform=ax.transAxes,
+            horizontalalignment='right', verticalalignment='top',
+            color='black', fontsize=15, fontweight='bold')
 
     # Add text annotations for onset days
     for i, lat in enumerate(lats):
         for j, lon in enumerate(lons):
-            value = climatological_onset_doy.values[i, j]
+            value = da.values[i, j]
             if not np.isnan(value):
                 text_color = 'white' if value > 200 else 'black'
                 ax.text(lon, lat, f'{value:.1f}', 
@@ -137,8 +148,13 @@ def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, po
                 color='black', fontsize=14, fontweight='normal',
                 verticalalignment='top', horizontalalignment='right')
 
-    #ax.set_xlabel('Longitude', fontsize=12)
-    #ax.set_ylabel('Latitude', fontsize=12)
+
+    if show_ylabel:
+        gl.left_labels = False
+
+    if title:
+        ax.text(0.02, 1.02, title, transform=ax.transAxes,
+                verticalalignment='bottom', fontsize=15, fontweight='normal')
     
     plt.tight_layout()
     
@@ -226,5 +242,5 @@ if __name__ == "__main__":
 
 
     plot_spatial_climatology_onset(onset_da_dict, 
-                                   figsize=(18, 6), cbar_ssn=False, domain_mask=False, **case_cfg_ref)
+                                   figsize=(8, 6), cbar_ssn=False, domain_mask=False, **case_cfg_ref)
 

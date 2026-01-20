@@ -1,6 +1,7 @@
 import importlib.resources
 import os
 from pathlib import Path
+import argparse
 
 #from MOMP.io.input import set_dir
 from MOMP.utils.practical import set_dir
@@ -15,22 +16,57 @@ package = "MOMP"
 base_dir = importlib.resources.files(package)
 print(f"package base dir {base_dir}")
 
-config_file = set_dir("params/config.in")
+#config_file = set_dir("params/config.in")
+#
+#if os.path.exists(config_file):
+#    print("config_file:", config_file)
+#else:
+#    print("config_file not found:", config_file)
+#    config_file = os.path.join(base_dir, "params/config.in")
+#    print("config_file:", config_file)
+#    if os.path.exists(config_file):
+#        print("config_file found:", config_file)
+#    else:
+#        print("config_file not found:", config_file)
 
-if os.path.exists(config_file):
-    print("config_file:", config_file)
+# -------
+def get_config_path_pre_parse():
+    # create a pre-parser just to find the '-p' flag
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("-p", "--param", default="params/config.in")
+    # parse_known_args ignores all other CLI arguments (like --model_list, etc.)
+    args, _ = pre_parser.parse_known_args()
+    return args.param
+
+# Use the pre-parsed path instead of the hardcoded one
+requested_path = get_config_path_pre_parse()
+##config_file = set_dir(requested_path)
+##
+##if not os.path.exists(config_file):
+##    # Fallback to package directory if local path doesn't exist
+##    config_file = os.path.join(base_dir, requested_path)
+
+# 2. Get the "Smart Path" (either a local Path or a Resource Traversable)
+config_item = set_dir(requested_path)
+
+# 3. Check if it exists (Both Path and Traversable support .exists())
+if not config_item.exists():
+    raise FileNotFoundError(f"Could not find: {requested_path}")
+
+# 4. Open the file safely
+if isinstance(config_item, Path):
+    # It's a normal local file
+    with open(config_item, "r") as f:
+        params_in = f.read()
 else:
-    print("config_file not found:", config_file)
-    config_file = os.path.join(base_dir, "params/config.in")
-    print("config_file:", config_file)
-    if os.path.exists(config_file):
-        print("config_file found:", config_file)
-    else:
-        print("config_file not found:", config_file)
+    # It's a package resource - use as_file context manager here
+    with resources.as_file(config_item) as actual_path:
+        with open(actual_path, "r") as f:
+            params_in = f.read()
+# -------
 
-
-with open(config_file, "r") as f:
-    params_in = f.read()
+#with open(config_file, "r") as f:
+#    params_in = f.read()
 
 params_in = "\n".join(
     line for line in params_in.splitlines() if not line.strip().startswith("#")

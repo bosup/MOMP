@@ -7,8 +7,7 @@ from MOMP.graphics.rainfall_time_series import plot_rainfall_timeseries_with_ons
 from MOMP.utils.practical import restore_args
 
 
-cfg=get_cfg()
-setting=get_setting()
+cfg, setting = get_cfg(), get_setting()
 
 def obs_onset_analysis(year, **kwargs):
 

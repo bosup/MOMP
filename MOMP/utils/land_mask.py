@@ -161,3 +161,69 @@ def mask_land(da, land=True):
 
     return da_masked
 
+
+def get_shp(region='Ethiopia', resolution='10m', category='cultural', name='admin_0_countries'):
+    """ Create country boundaries"""
+
+    import cartopy.io.shapereader as shpreader
+
+    # Load Ethiopia shapefile
+    ethiopia_shp = shpreader.natural_earth(resolution=resolution, category=category, name=name)
+
+    # Find Ethiopia geometry
+    region_geom = None
+    for country in shpreader.Reader(ethiopia_shp).records():
+        if country.attributes['NAME'] == region:
+            region_geom = country.geometry
+            return region_geom
+
+
+def shp_mask(da, region='Ethiopia', resolution='10m', category='cultural', name='admin_0_countries', 
+             return_mask=False):
+    """ Create mask based on country boundaries"""
+
+    # get region boundary
+    region_geom = get_shp(region=region, resolution=resolution, category=category, name=name)
+
+    # Create mask for Ethiopia
+    lons, lats = np.meshgrid(da.lon, da.lat)
+    points = np.column_stack((lons.ravel(), lats.ravel()))
+    mask = shpvec.contains(region_geom, points[:, 0], points[:, 1])
+    mask = mask.reshape(lons.shape)
+    mask_da = xr.DataArray(mask, dims=['lat', 'lon'], coords={'lat': da.lat, 'lon': da.lon})
+
+    # Apply mask to data
+    da_masked = da.where(mask_da)
+
+    #return da_masked, mask_da
+
+    if return_mask:
+        return da_masked, mask_da
+    else:
+        return da_masked
+
+
+def shp_outline(ax, region='Ethiopia', resolution='10m', category='cultural', name='admin_0_countries'):
+    """ add shapefile country boundaries to plot"""
+
+    import cartopy.crs as ccrs
+    import cartopy.feature as cfeature
+
+    # get region boundary
+    region_geom = get_shp(region=region, resolution=resolution, category=category, name=name)
+
+    # Plot boundary
+    ax.add_geometries(
+        [region_geom],
+        crs=ccrs.PlateCarree(),
+        facecolor="none",
+        edgecolor="black",
+        linewidth=1.5
+    )
+    
+    # Optional: background
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=":")
+
+    return ax
+

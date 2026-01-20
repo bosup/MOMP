@@ -1,4 +1,7 @@
 *.pyc
+*.ipynb
+book/
+docs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -12,6 +15,9 @@ __pycache__/
 data/
 figure/
 output/
+
+# .DS_Store
+.DS_Store
 
 # Distribution / packaging
 .Python

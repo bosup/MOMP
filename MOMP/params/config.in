@@ -16,7 +16,8 @@ layout = ("model", "verification_window")
 # List of models to process (e.g., "AIFS", "IFS", "NGCM").
 # Must be models from the same category, e.g., all probabilistic models
 # for all parameter lists in config.in, keep the trailing comma if only one item
-model_list = ("AIFS",)
+model_list = ("AIFS", "XXXX")
+#model_list = ("IFS", "NGCM")
 
 # ------------------------------------------------------------------------------
 # 2. OBSERVATION DATA SETTINGS
@@ -58,7 +59,8 @@ ref_model_unit_cvt = None
 # 4. FORECAST MODEL SETTINGS
 # ------------------------------------------------------------------------------
 # List of directories corresponding to the 'model_list'.
-model_dir_list = ("/Users/bodong/Code/dev_tmp/4x4/aifs",)
+model_dir_list = ("/Users/bodong/Code/dev_tmp/4x4/aifs", "/Users/bodong/Code/dev_tmp/4x4/aifs")
+#model_dir_list = ("/Users/bodong/Code/dev_tmp/4x4/ifs", "/Users/bodong/Code/dev_tmp/4x4/ngcm")
 
 # Variable names for rainfall in each forecast model (e.g., 'tp' for Total Precip).
 model_var_list = ("tp", "tp")
@@ -139,7 +141,8 @@ date_filter_year = 2024
 # 8. EVALUATION & VERIFICATION PARAMETERS
 # ------------------------------------------------------------------------------
 # Range of days after initialization to consider for validation.
-verification_window_list = ((1, 15),)
+#verification_window_list = ((1, 15),)
+verification_window_list = ((1, 15), (16,20))
 
 # Allowed error margin (in days) when comparing forecast to obs onset.
 tolerance_days_list = (3, 5,)
@@ -159,7 +162,7 @@ MAE = True  # Mean Absolute Error
 MR  = True  # Miss Rate (Hit Rate complement)
 
 # --- Probabilistic Metrics ---
-probabilistic = False  # Set True to enable ensemble evaluation
+#probabilistic = True  # Set True to enable ensemble evaluation
 members = [1, 2, 3, 4, 5]  # Ensemble member IDs
 
 BS          = True  # Brier Skill Score
@@ -184,9 +187,15 @@ save_nc_climatology = True        # Save calculated climatology to NetCDF
 # Graphics configuration
 shpfile_dir = "/Users/bodong/Code/dev_tmp/shpfile" # Path to GIS shapefiles
 polygon = True                                     # Mask/Plot by region polygons
-plot_spatial_far_mr_mae = True                     # Generate spatial maps of far,mr,mae
-plot_heatmap = True                                # Generate score heatmaps
-plot_reliability = True                            # Generate reliability curve plots
-plot_climatology_onset = True                      # Spatial map of climatology onset
+plot_spatial_far_mr_mae = False                     # Generate spatial maps of far,mr,mae
+plot_heatmap = False                                # Generate score heatmaps
+plot_reliability = False                            # Generate reliability curve plots
+plot_climatology_onset = False                      # Spatial map of climatology onset
 plot_panel_heatmap_error = True                    # panel heatmap of mae,mr,far 
 plot_panel_heatmap_skill = True                    # panel heatmap skill score 
+plot_bar_bss_rpss_auc = True                    # panel heatmap skill score 
+
+# ------------------------------------------------------------------------------
+# 11. DEBUG SETTINGS
+# ------------------------------------------------------------------------------
+debug = False # run MOMP in debug mode for developers
