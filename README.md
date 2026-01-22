@@ -1,11 +1,11 @@
-# ROMP — Monsoon Onset Metrics Package
+# ROMP — Rainy season Onset Metrics Package
 
-**ROMP** is a Python package for detecting and benchmarking **monsoon onset** in observational and forecast datasets. It provides tools for onset detection, ensemble forecast statistics, binned and spatial metrics, and visualization workflows commonly used in climate research.
+**ROMP** is a Python package for detecting and benchmarking **rainy season onset** in observational and forecast datasets. It provides tools for onset detection, ensemble forecast statistics, binned and spatial metrics, and visualization workflows commonly used in climate research.
 
 
 ## Key Capabilities
 
-- Monsoon onset detection with user specified criteria
+- rainy season onset detection with user specified criteria
 - deterministic and probabilistic benchmarking metrics
 - Skill Scores (overall and binned)
 - Spatial metrics (MAE, False Alarm Rate, Miss Rate)
@@ -107,7 +107,7 @@ With user-defined `config.in`, the main benchmarking workflow is executed via CL
 Typical steps performed:
 1. Load configuration
 2. Read model and observation data
-3. Detect monsoon onset
+3. Detect rainy season onset
 4. Evaluate model against reference data 
 5. Generate benchmarking metrics
 6. Save NetCDF outputs and figures
@@ -168,7 +168,7 @@ MIT License
 
 ## Citation
 If you use ROMP in your research, please cite:
-ROMP: Monsoon Onset Metrics Package, UChicago HCWF Authors, 2026
+ROMP: Rainy season Onset Metrics Package, UChicago HCWF Authors, 2026
 
 ## Contact
 Author: bosup  
