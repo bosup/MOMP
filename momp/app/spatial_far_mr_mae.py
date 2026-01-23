@@ -34,6 +34,7 @@ def spatial_far_mr_mae_map(cfg=cfg, setting=setting):#, **kwargs):
         case = make_case(Case, combi, cfg)
 
         print(f"processing model onset evaluation for {case.case_name}")
+        print(f"\n verification window = {case.verification_window}\n")
 
         case_cfg = {**asdict(case), **asdict(setting)}
 

@@ -29,8 +29,16 @@ def create_parser(config, cli_args=None):
         #action="append",
         #metavar=("START", "END"),
         type=parse_window_list,
-        default=((1, 15), (16, 20)),
+        default=((1, 15), (16, 30)),
         help="Verification window as start end day (efault: {config['verification_window_list']})"
+    )
+
+    parser.add_argument(
+        "--max_forecast_day",
+        type=int,
+        default=30,
+        #help="Max forecast day (default: {config['max_forecast_day']})"
+        help="Max forecast day (default: 30)"
     )
 
     parser.add_argument(
