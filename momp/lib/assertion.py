@@ -2,6 +2,9 @@ import os
 from datetime import datetime
 from types import SimpleNamespace
 
+
+# dry_extent > dry_spell
+
 # model name no space
 
 #window should include day_bins

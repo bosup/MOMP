@@ -36,30 +36,72 @@ def find_first_true(arr):
 
 
 def detect_onset(day, forecast_series, thresh, *, wet_init, wet_spell, dry_spell, dry_threshold, dry_extent, **kwargs):
+    """
+    detect onset for model forecast
+    ---
+    forecast_series: grid point xarray time series
+    """
 
-    start_idx = day - 1
-    end_idx = start_idx + wet_spell
+    #dry_threshold = wet_init # default
 
-    if end_idx <= len(forecast_series) - dry_extent:
-        window_series = forecast_series[start_idx:end_idx]
+    start_idx = day
 
-        # Check basic onset condition
-        #if window_series[0] > wet_init and np.nansum(window_series) > wet_threshold:
-        if window_series[0] > wet_init and np.nansum(window_series) > thresh:
+    if dry_extent <= wet_spell:
+        end_idx = start_idx + wet_spell
+
+        if end_idx <= len(forecast_series):
+            window_series = forecast_series[start_idx:end_idx]
+    
+            # Check basic onset condition
+            #if window_series[0] > wet_init and np.nansum(window_series) > thresh:
+            if np.all(window_series >=  wet_init) and np.nansum(window_series) > thresh:
+                return True
+
 
             # check if followed by dry spell
-            if dry_extent > 0:
-                extended_series = forecast_series[end_idx:end_idx+dry_extent]
-                rolling_sum = extended_series.rolling(dry_spell).sum()
-                has_dry_spell = (rolling_sum < dry_threshold).any()
+    else:
+        end_idx = start_idx + wet_spell
+        end_idx_dry = start_idx + dry_extent
+
+        if end_idx_dry <= len(forecast_series):
+            window_series = forecast_series[start_idx:end_idx]
+            dry_series = forecast_series[start_idx:end_idx_dry]
+
+            if np.all(window_series >=  wet_init) and np.nansum(window_series) > thresh:
+
+                dry_bool = dry_series < wet_init
+                consec_dry = np.convolve(dry_bool, np.ones(dry_spell, dtype=int), 'valid')
+                has_dry_spell = np.any(consec_dry == dry_spell)
 
                 if not has_dry_spell:
                     return True
 
-            else:
-                return True
+
+#    start_idx = day - 1
+#    end_idx = start_idx + wet_spell
+#
+#    if end_idx <= len(forecast_series) - dry_extent:
+#        window_series = forecast_series[start_idx:end_idx]
+#
+#        # Check basic onset condition
+#        #if window_series[0] > wet_init and np.nansum(window_series) > wet_threshold:
+#        if window_series[0] > wet_init and np.nansum(window_series) > thresh:
+#
+#            # check if followed by dry spell
+#            if dry_extent > 0:
+#                extended_series = forecast_series[end_idx:end_idx+dry_extent]
+#                rolling_sum = extended_series.rolling(dry_spell).sum()
+#                has_dry_spell = (rolling_sum < dry_threshold).any()
+#
+#                if not has_dry_spell:
+#                    return True
+#
+#            else:
+#                return True
 
 
+
+#def detect_onset_mok(day, forecast_series, wet_init, wet_spell, wet_threshold, dry_spell, dry_threshold, dry_extent,
 
 #def detect_onset_mok(day, forecast_series, wet_init, wet_spell, wet_threshold, dry_spell, dry_threshold, dry_extent,
 #                     init_date, mok_date):#, **kwargs):
@@ -110,7 +152,7 @@ def detect_observed_onset(rain_slice, thresh_slice, year, *, wet_init, wet_spell
     time_dates = pd.to_datetime(rain_slice.time.values)
     start_idx_candidates = np.where(time_dates > start_date)[0]
 
-    if len(start_idx_candidates) == 0:
+    if len(start_idx_candidates) == 0 and fallback_date:
         print(f"Warning: {date_label} not found in data for year {year}")
         fallback_date = datetime(year, *fallback_MMDD)
         start_idx = np.where(time_dates >= fallback_date)[0][0]
@@ -127,18 +169,39 @@ def detect_observed_onset(rain_slice, thresh_slice, year, *, wet_init, wet_spell
     rolling_sum_aligned = rolling_sum.shift(time=-(wet_spell-1))
 
     # Create onset condition
-    first_day_condition = rain_subset > wet_init
+    wet_day_condition = rain_subset >= wet_init
+    wet_day_spell = (wet_day_condition.rolling(time=wet_spell,
+                                                       min_periods=wet_spell, center=False).reduce(np.all))
+
+    first_day_condition = wet_day_spell.shift(time=-(wet_spell-1))
+
     sum_condition = rolling_sum_aligned > thresh_slice
 
-    if dry_extent > 0:
-        dry_rolling = rain_subset.rolling(time=dry_spell, min_periods=dry_spell).sum() < dry_threshold
-        dry_rolling_start_aligned = dry_rolling.shift(time=-(dry_spell-1))  # align to start of each 10-day window
-        dry_rolling_after_onset = dry_rolling_start_aligned.shift(time=-(wet_spell))
+    # check false onset
 
-        dry_search_window = dry_extent - dry_spell + 1  # 30 - 10 + 1 = 21
-        dry_in_extent = dry_rolling_after_onset.rolling(time=dry_search_window, min_periods=1).reduce(np.any)
-        no_dry_after = (~dry_in_extent.astype(bool))
-        #no_dry_after = ~dry_in_extent
+    #if dry_extent > 0:
+    if dry_extent >= dry_spell and dry_extent > wet_spell:
+        #dry_rolling = rain_subset.rolling(time=dry_spell, min_periods=dry_spell).sum() < dry_threshold
+        #dry_rolling_start_aligned = dry_rolling.shift(time=-(dry_spell-1))  # align to start of each 10-day window
+        #dry_rolling_after_onset = dry_rolling_start_aligned.shift(time=-(wet_spell))
+
+        #dry_search_window = dry_extent - dry_spell + 1  # 30 - 10 + 1 = 21
+        #dry_in_extent = dry_rolling_after_onset.rolling(time=dry_search_window, min_periods=1).reduce(np.any)
+        #no_dry_after = (~dry_in_extent.astype(bool))
+        ##no_dry_after = ~dry_in_extent
+
+        dry_day_condition = rain_subset < wet_init
+
+        dry_day_spell = (dry_day_condition.rolling(time=dry_spell,
+                                                           min_periods=dry_spell, center=False).reduce(np.all))
+
+        no_dry_after = ~(
+        dry_day_spell
+        .rolling(time=dry_extent+1, min_periods=1)
+        .reduce(np.any)
+        .shift(time=-dry_extent)
+        )   
+
         onset_condition = first_day_condition & sum_condition & no_dry_after
 
     else:
@@ -209,7 +272,16 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, *,
     #print(f"Only processing forecasts initialized before observed onset dates")
 
     #max_steps_needed = forecast_bin_end + window + dry_extent - forecast_bin_start  #to add dry spell option
-    max_steps_needed = max_forecast_day + wet_spell + dry_extent - 1
+    #max_steps_needed = max_forecast_day + wet_spell + dry_extent - 1
+
+    if dry_extent <= wet_spell:
+        max_steps_needed = max_forecast_day + wet_spell - 1
+    else:
+        max_steps_needed = max_forecast_day + dry_extent
+
+    full_steps = p_model.sizes['step']
+    if full_steps < max_steps_needed:
+        raise ValueError(f"Not enough forecast time steps: {full_steps} < {max_steps_needed}")
 
     total_potential_inits = 0
     valid_inits = 0
@@ -264,7 +336,7 @@ def compute_onset_for_deterministic_model(p_model, thresh_slice, onset_da, *,
                         lat=i,
                         lon=j,
                     #).sel(step=slice(forecast_bin_start, forecast_bin_start + max_steps_needed)).values
-                    ).sel(step=slice(1, max_steps_needed + 1)).values
+                    ).sel(step=slice(1, max_steps_needed)).values
 
                     if len(forecast_series) < max_steps_needed:
                         onset_day = None
@@ -370,7 +442,16 @@ def compute_onset_for_all_members(p_model, thresh_slice, onset_da, *, wet_init, 
     print(f"Using {date_method} for onset detection")
 
     #max_steps_needed = forecast_bin_end + window + dry_extent - forecast_bin_start
-    max_steps_needed = max_forecast_day + wet_spell - 1
+    #max_steps_needed = max_forecast_day + wet_spell - 1
+
+    if dry_extent <= wet_spell:
+        max_steps_needed = max_forecast_day + wet_spell - 1
+    else:
+        max_steps_needed = max_forecast_day + dry_extent
+
+    full_steps = p_model.sizes['step']
+    if full_steps < max_steps_needed:
+        raise ValueError(f"Not enough forecast time steps: {full_steps} < {max_steps_needed}")
 
     # Track statistics
     total_potential_forecasts = 0
@@ -438,7 +519,7 @@ def compute_onset_for_all_members(p_model, thresh_slice, onset_da, *, wet_init, 
                         lon=loc_idx,
                         member=m_idx,
                         #step=slice(forecast_bin_start, forecast_bin_start + max_steps_needed)
-                        step=slice(1, max_steps_needed + 1)
+                        step=slice(1, max_steps_needed)
                     ).values
 
 #                    print("max_steps_needed = ", max_steps_needed)

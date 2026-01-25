@@ -71,7 +71,7 @@ class Setting:
     end_date: tuple[int, int, int] = field(default=(2024,10,31))
     start_year_clim: int = field(default=1980)
     end_year_clim: int = field(default=2000)
-    fallback_date: Optional[tuple[int, int]] = field(default=(4,1))
+    fallback_date: Optional[tuple[int, int]] = field(default=None)
 
     init_days: tuple = field(default=(0,3))
     date_filter_year: int = field(default=2024)
