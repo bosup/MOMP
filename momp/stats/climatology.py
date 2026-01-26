@@ -46,6 +46,10 @@ def compute_climatological_onset(*, obs_dir, obs_file_pattern, obs_var, thresh_f
             
             # Detect onset for this year
             onset_da = detect_observed_onset(rainfall_ds, thresh_da, year, **kwargs)
+            #print("\n\n\n year = ", year)
+            #print("onset_da = ", onset_da)
+            #print("onset_da = ", onset_da.values)
+            #print("\n\n\nYYYYYY")
             
             # Convert onset dates to day of year
             onset_doy = onset_da.dt.dayofyear.astype(float)
@@ -55,6 +59,7 @@ def compute_climatological_onset(*, obs_dir, obs_file_pattern, obs_var, thresh_f
             
         except Exception as e:
             print(f"Warning: Could not process year {year}: {e}")
+            raise
             continue
     
     if not all_onset_days:
@@ -115,7 +120,8 @@ def compute_climatology_as_forecast(climatological_onset_doy, year, init_dates, 
         #    print(f"Processing init time {t_idx+1}/{len(init_dates)}: {init_time.strftime('%Y-%m-%d')}")
         
         init_date = pd.to_datetime(init_time)
-        mok_date = datetime(year, *mok)  # June 2nd of the same year
+        if mok:
+            mok_date = datetime(year, *mok)  # June 2nd of the same year
         
         for i, lat in enumerate(lats):
             for j, lon in enumerate(lons):

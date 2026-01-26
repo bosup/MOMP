@@ -45,13 +45,14 @@ def cbar_season():
     cmap_jjas = ListedColormap(colors, name="JJAS_piecewise")
     norm_jjas = BoundaryNorm(bounds, cmap_jjas.N)
 
-    return cmap_jjas, norm_jjas
+    return cmap_jjas, norm_jjas, bounds
 
 
-def set_basemap(ax, region, shpfile_dir, polygon, **kwargs):
+def set_basemap(ax, region, shpfile_dir, polygon, linewidth=1.25, grid=True, line=False, **kwargs):
     from momp.utils.land_mask import shp_outline, get_india_outline
     from momp.params.region_def import domain
     import cartopy.crs as ccrs
+    import matplotlib.ticker as mticker
 
     # Add Ethiopia boundary
     if shpfile_dir:
@@ -65,14 +66,29 @@ def set_basemap(ax, region, shpfile_dir, polygon, **kwargs):
     # Set map extent to Ethiopia
     lats, latn, lonw, lone = domain(region)
     ax.set_extent([lonw, lone, lats, latn], crs=ccrs.PlateCarree())
+
+    # Add polygon boundary
+    # need da as input for lat, lon coordinate
+    #ax = add_polygon(ax, da, polygon, return_polygon=False, linewidth=linewidth)
     
-    # Add gridlines with labels
-    gl = ax.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False,
-                      linewidth=0.5, color='gray', alpha=0.1)
+    if not grid:
+        return ax, None
+
+    if line:
+        # Add gridlines with labels
+        gl = ax.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False,
+                      linewidth=0.5, color='gray', alpha=0.01)
+    else:
+        gl = ax.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False,
+                      linewidth=0, linestyle='', color='none', alpha=0)
+
     gl.top_labels = False
     gl.right_labels = False
-    gl.xlabel_style = {'size': 10}
-    gl.ylabel_style = {'size': 10}
+    gl.xlabel_style = {'size': 7}
+    gl.ylabel_style = {'size': 7}
+
+    gl.xlocator = mticker.MultipleLocator(5)   # every 5°
+    gl.ylocator = mticker.MultipleLocator(5)   # every 5°
 
     return ax, gl
 

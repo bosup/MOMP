@@ -94,7 +94,7 @@ class Setting:
     obs_dir: str = field(default="data")
     ref_model_dir: str = field(default="data")
 
-    shpfile_dir: Optional[str] = field(default="data")
+    shpfile_dir: Optional[str] = field(default=None)
 
     obs_file_pattern: str = field(default="{}.nc")
     ref_model_file_pattern: str = field(default="{}.nc")

@@ -172,12 +172,19 @@ def detect_observed_onset(rain_slice, thresh_slice, year, *, wet_init, wet_spell
     wet_day_condition = rain_subset >= wet_init
     wet_day_spell = (wet_day_condition.rolling(time=wet_spell,
                                                        min_periods=wet_spell, center=False).reduce(np.all))
+    
+    #wet_day_spell = (wet_day_condition.rolling(time=wet_spell, min_periods=wet_spell)
+    #                 .sum()== wet_spell) # this method make sure return bool type, no need .fillna(False) line
 
     first_day_condition = wet_day_spell.shift(time=-(wet_spell-1))
+    first_day_condition = first_day_condition.fillna(False).astype(bool) # convert nans to bool
+
 
     sum_condition = rolling_sum_aligned > thresh_slice
 
     # check false onset
+    #print("first_day_condition = ", first_day_condition[100,...])
+    #print("sum_condition = " , sum_condition[100,...] )
 
     #if dry_extent > 0:
     if dry_extent >= dry_spell and dry_extent > wet_spell:
@@ -192,21 +199,36 @@ def detect_observed_onset(rain_slice, thresh_slice, year, *, wet_init, wet_spell
 
         dry_day_condition = rain_subset < wet_init
 
-        dry_day_spell = (dry_day_condition.rolling(time=dry_spell,
-                                                           min_periods=dry_spell, center=False).reduce(np.all))
+        #dry_day_spell = (dry_day_condition.rolling(time=dry_spell,
+        #                                                   min_periods=dry_spell, center=False).reduce(np.all))
 
-        no_dry_after = ~(
-        dry_day_spell
-        .rolling(time=dry_extent+1, min_periods=1)
-        .reduce(np.any)
-        .shift(time=-dry_extent)
-        )   
+        dry_day_spell = (dry_day_condition.rolling(time=dry_spell, min_periods=dry_spell)
+                         .sum() == dry_spell)
 
+        #print("dry_day_condition = ", dry_day_condition)
+        #print("dry_day_spell = ", dry_day_spell)
+
+        #no_dry_after = ~(dry_day_spell.rolling(time=dry_extent+1, min_periods=1)
+        #                 .reduce(np.any).shift(time=-dry_extent))
+
+        has_dry_after = (dry_day_spell.rolling(time=dry_extent+1, min_periods=1)
+                         .sum() > 0 ).shift(time=-dry_extent).fillna(False).astype(bool)
+
+        #print("has_dry_after = ", has_dry_after)
+
+        no_dry_after = xr.apply_ufunc(np.logical_not, has_dry_after)
+        #no_dry_after = has_dry_after == False
+        #no_dry_after = ~has_dry_after
+
+        #print("no_dry_after =  ", no_dry_after)
         onset_condition = first_day_condition & sum_condition & no_dry_after
 
     else:
         onset_condition = first_day_condition & sum_condition
 
+    #print("find_first_true = ", find_first_true)
+    #print("onset_condition = ", onset_condition[100,...] )
+    #print(" input_core_dims = ", [['time']])
 
     onset_indices = xr.apply_ufunc(
         find_first_true,

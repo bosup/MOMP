@@ -8,6 +8,8 @@ from momp.lib.convention import Case, Setting
 from momp.utils.printing import combi_to_str
 #from momp.io.input import set_dir
 from momp.utils.practical import set_dir
+from dataclasses import asdict
+import copy
 
 
 def init_dataclass(dc, dic):
@@ -169,11 +171,11 @@ def make_case(dataclass, combi, dic):
     case.case_name = case_name.replace(" ", "_")
 
     #if not dic['years']:
-    if dic['years'] == 'All' or not dic['years']:
+    if dic.get('years') == 'All' or not dic.get('years'):
         case.years = years_tuple_model(dic['start_date'], dic['end_date'])
 
     #if not dic['years_clim']:
-    if dic['years_clim'] == 'All' or not dic['years_clim']:
+    if dic.get('years_clim') == 'All' or not dic.get('years_clim'):
         case.years_clim = years_tuple_clim(dic['start_year_clim'], dic['end_year_clim'])
 
     case.members = take_ensemble_members(dic['members'])
@@ -188,3 +190,42 @@ def make_case(dataclass, combi, dic):
 
 
 
+def ref_cfg_layout(cfg, ref_model=None, verification_window=None):
+
+    cfg_ref = copy.copy(cfg)
+
+    if ref_model:
+        cfg_ref.ref_model = ref_model
+
+    if cfg.ref_model == 'climatology':
+        cfg_ref.probabilistic = False
+
+    cfg_ref.model_list = (cfg.ref_model,)
+
+    if verification_window:
+        cfg_ref.verification_window_list = (verification_window,)
+
+    layout_pool = iter_list(vars(cfg_ref))
+
+    return cfg_ref, layout_pool
+
+
+def ref_model_case(case_orig, setting):
+
+    case = copy.copy(case_orig)
+
+    case_ref = {'model_dir': setting.ref_model_dir,
+                'model_var': case.ref_model_var,
+                'file_pattern': setting.ref_model_file_pattern,
+                'unit_cvt': setting.ref_model_unit_cvt
+                }
+
+    case.update(case_ref)
+
+    if case.model == 'climatology':
+        case.years = case.years_clim
+
+    case_cfg_ref = {**asdict(case), **asdict(setting)}
+
+
+    return case, case_cfg_ref

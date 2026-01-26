@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import copy
 from matplotlib.patches import Polygon
-from momp.params.region_def import polygon_boundary, add_polygon
+from momp.params.region_def import polygon_boundary
 from momp.utils.land_mask import get_india_outline
 from momp.graphics.maps import calculate_cmz_averages
 from momp.utils.printing import tuple_to_str_range
@@ -12,7 +12,8 @@ import cartopy.crs as ccrs
 from matplotlib import colors as mcolors
 
 from momp.utils.visual import cbar_season, set_basemap
-from momp.utils.land_mask import shp_outline, shp_mask
+from momp.utils.land_mask import shp_outline, shp_mask, add_polygon
+from momp.graphics.func_map import spatial_metrics_map
 
 def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, polygon, dir_fig, 
                                    region, figsize=(18, 6), cbar_ssn=False, domain_mask=False, **kwargs):
@@ -147,12 +148,12 @@ def plot_spatial_climatology_onset(onset_da_dict, *, years_clim, shpfile_dir, po
     if dir_fig:
         plot_filename = f"climatology_onset_{tuple_to_str_range(years_clim)}.png"
         plot_path = os.path.join(dir_fig, plot_filename)
-        plt.savefig(plot_path, dpi=600, bbox_inches='tight')
-        print(f"Figure saved to: {plot_path}")
+        #plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        #print(f"Figure saved to: {plot_path}")
     
     plt.show()
     
-    return fig, ax
+    return fig, ax, plot_path
 
 
 def doy_to_date_string(doy, date_filter_year=2024):
@@ -228,6 +229,14 @@ if __name__ == "__main__":
         break
 
 
-    plot_spatial_climatology_onset(onset_da_dict, 
-                                   figsize=(18, 6), cbar_ssn=False, domain_mask=False, **case_cfg_ref)
+#    plot_spatial_climatology_onset(onset_da_dict, 
+#                                   figsize=(18, 6), cbar_ssn=False, domain_mask=False, **case_cfg_ref)
+
+    da = next(iter(onset_da_dict.values()))
+
+    spatial_metrics_map(da, case.model, 
+                    fig=None, ax=None, figsize=(8, 6), cmap='YlOrRd', n_colors=10,
+                    onset_plot=True, cbar_ssn=True, domain_mask=True, polygon_only=False,
+                    show_ylabel=True, title="climatology onset", **case_cfg_ref)
+
 

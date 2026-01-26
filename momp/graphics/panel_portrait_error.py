@@ -53,48 +53,73 @@ if __name__ == "__main__":
     from itertools import product
     from momp.lib.control import iter_list, make_case
     from momp.utils.printing import tuple_to_str
+    from momp.lib.convention import Case
+    from momp.io.output import set_nested
+    from momp.io.output import nested_dict_to_array
     import xarray as xr
+    import copy
 
     cfg, setting = get_cfg(), get_setting()
     
+#    fout = os.path.join(cfg['dir_out'],"combi_error_results.pkl")
+#    with open(fout, "rb") as f:
+#        import pickle
+#        result = pickle.load(f)
+
     result = {}
+    var_list = ["mean_mae", "false_alarm_rate", "miss_rate"]
     
     layout_pool = iter_list(vars(cfg))
 
     for combi in product(*layout_pool):
         case = make_case(Case, combi, vars(cfg))
 
-        #fi = os.path.join(cfg['dir_out'],"spatial_metrics_{}.nc")
-        fi = os.path.join(cfg.dir_out,"spatial_metrics_{}.nc")
-        fi = fi.format(case.case_name)
-        ds = xr.open_dataset(fi)
-        #ds_subset = ds[["mean_mae", "false_alarm_rate", "miss_rate"]]
-        var_list = ["mean_mae", "false_alarm_rate", "miss_rate"]
-
         day_bin = tuple_to_str(case.verification_window) 
-        for var in var_list:
-            result[case.model][day_bin][var] = ds[var]
 
-        #fi = os.path.join(cfg['dir_out'],"spatial_metrics_{}_{}.nc")
+        fi = os.path.join(cfg.dir_out,"spatial_metrics_{}_{}.nc")
+        fi = fi.format(case.model, day_bin)
+        ds = xr.open_dataset(fi)
+
+        #ds_subset = ds[["mean_mae", "false_alarm_rate", "miss_rate"]]
+        #for var in var_list:
+        #    result[case.model][day_bin][var] = ds[var]
+
+        spatial_metrics_dict = {var: ds[var] for var in var_list}
+
+        result = set_nested(result, combi, spatial_metrics_dict)
+
+        ds.close()
+
+
+    cfg_ref = copy.copy(cfg)
+    cfg_ref.model_list = (cfg.ref_model,)
+    layout_pool = iter_list(vars(cfg_ref))
+
+    for combi in product(*layout_pool):
+        case = make_case(Case, combi, vars(cfg_ref))
+
+        #print("\n combi  = ", combi)
+        #print("case.ref_model = ", case.ref_model)
+        day_bin = tuple_to_str(case.verification_window) 
+
         fi = os.path.join(cfg.dir_out,"spatial_metrics_{}_{}.nc")
         fi = fi.format(case.ref_model, day_bin)
-        if result.get(case.ref_model, {}).get(day_bin) is not None:
+
+        if result.get(case.ref_model, {}).get(day_bin) is None:
+            #print("\n ref dict is None")
             ds = xr.open_dataset(fi)
-            var_list = ["mean_mae", "false_alarm_rate", "miss_rate"]
-            for var in var_list:
-                result[case.ref_model][day_bin][var] = ds[var]
+            spatial_metrics_dict = {var: ds[var] for var in var_list}
+
+            result = set_nested(result, combi, spatial_metrics_dict)
+
+            ds.close() 
+
+    #arr, row_labels, col_labels = nested_dict_to_array(result, "mean_mae")
+    #print("result = \n ", result)
+    #print("row_labels = ", row_labels)
+    #print("col_labels = ", col_labels)
+
+    panel_portrait_mae_far_mr(result, **vars(cfg))
 
     
-#    fout = os.path.join(cfg['dir_out'],"combi_error_results.pkl")
-#    with open(fout, "rb") as f:
-#        import pickle
-#        results = pickle.load(f)
-    
-    panel_portrait_mae_far_mr(results, **vars(cfg))
 
-
-#mae = nested_dict_to_array(results, "mean_mae") # "miss_rate", "false_alarm_rate"
-#print(mae)
-
-#model_list = cfg["model_list"]
-#window_list = cfg["verification_window_list"]

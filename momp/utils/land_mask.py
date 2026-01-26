@@ -1,9 +1,11 @@
 import numpy as np
-from pathlib import Path
+from matplotlib.path import Path
+#from pathlib import Path
 from typing import Union
 import regionmask
 import xarray as xr
 from momp.params.region_def import polygon_boundary
+from matplotlib.patches import Polygon
 
 
 # Function to find grid points inside a polygon (For core-monsoon zone analysis)
@@ -23,10 +25,17 @@ def points_inside_polygon(polygon_lon, polygon_lat, grid_lons, grid_lats):
     inside_lats: latitude coordinates of points inside polygon
     """
 
+    #print("\n polygon_lon = ", polygon_lon)
+    #print("\n grid_lons = ", grid_lons)
+    #print(type(polygon_lon))
+
     # Create polygon path
     #polygon_path = Path(list(zip(polygon_lon, polygon_lat)))
     polygon_vertices = np.column_stack((polygon_lon, polygon_lat))
+    #print("\npolygon_vertices = ", polygon_vertices)
     polygon_path = Path(polygon_vertices)
+
+    #print("\npolygon_path = ", polygon_path)
 
     # Create meshgrid if needed
     if grid_lons.ndim == 1 and grid_lats.ndim == 1:
@@ -59,9 +68,77 @@ def polygon_mask(da_model):
 
     inside_mask, inside_lons, inside_lats = points_inside_polygon(polygon1_lon, polygon1_lat, orig_lon, orig_lat)
 
-    da_model_slice = da_model.sel(lat=inside_lats, lon=inside_lons)
+    #da_model_slice = da_model.sel(lat=inside_lats, lon=inside_lons) # result in different dim size
+    # xarray matches all lats in inside_lats with all lons in inside_lons, forming a cartesian product.
+    # so output values are repeated multiple times — every selected latitude is paired with 
+    # every selected longitude.
+
+    da_model_slice = da_model.where(inside_mask)
 
     return da_model_slice
+
+
+
+def polygon_outline(ax, polygon1_lon, polygon1_lat, linewidth=1.25):
+    """ add polygon boundary to basemap """
+    #from matplotlib.patches import Polygon
+    import cartopy.crs as ccrs
+    from shapely.geometry import Polygon as ShapelyPolygon
+    from cartopy.feature import ShapelyFeature
+    
+    # Cartopy gridlines create a separate layer that can cover patches added with ax.add_patch()
+    # use a ShapelyFeature and add it with ax.add_feature() with a higher zorder 
+    # so it appears above gridlines and map features
+    poly_geom = ShapelyPolygon(list(zip(polygon1_lon, polygon1_lat)))
+    
+    # wrap as a Cartopy feature
+    poly_feature = ShapelyFeature(
+        [poly_geom],
+        crs=ccrs.PlateCarree(),  # coordinates are lon/lat
+        edgecolor='black',
+        facecolor='none',
+        linewidth=linewidth
+    )
+    
+    # add to axes above gridlines
+    ax.add_feature(poly_feature, zorder=10)
+
+
+    # the code below doesn't work with gridline set
+    # Cartopy gridlines create a separate layer that can cover patches added with ax.add_patch()
+    #polygon_lines = Polygon(list(zip(polygon1_lon, polygon1_lat)),
+    #                 fill=False, edgecolor='black', linewidth=linewidth, transform=ccrs.PlateCarree())
+    #ax.add_patch(polygon_lines)
+
+    return ax
+
+
+
+def add_polygon(ax, da, polygon, return_polygon=False, linewidth=1.25):
+    #from matplotlib.patches import Polygon
+    #from momp.params.region_def import polygon_boundary
+
+    polygon_defined = False
+
+    if polygon:
+        polygon1_lat, polygon1_lon = polygon_boundary(da)
+
+        if len(polygon1_lat) > 0 and len(polygon1_lon) > 0:
+            polygon_defined = True
+
+    # Add CMZ polygon only if defined
+    if polygon_defined:
+
+        #polygon_lines = Polygon(list(zip(polygon1_lon, polygon1_lat)),
+        #                 fill=False, edgecolor='black', linewidth=linewidth)
+        #ax.add_patch(polygon_lines)
+
+        ax = polygon_outline(ax, polygon1_lon, polygon1_lat, linewidth=linewidth)
+
+    if return_polygon:
+        return ax, polygon1_lat, polygon1_lon, polygon_defined
+    else:
+        return ax
 
 
 
@@ -181,6 +258,7 @@ def get_shp(region='Ethiopia', resolution='10m', category='cultural', name='admi
 def shp_mask(da, region='Ethiopia', resolution='10m', category='cultural', name='admin_0_countries', 
              return_mask=False):
     """ Create mask based on country boundaries"""
+    from shapely.vectorized import contains
 
     # get region boundary
     region_geom = get_shp(region=region, resolution=resolution, category=category, name=name)
@@ -188,7 +266,7 @@ def shp_mask(da, region='Ethiopia', resolution='10m', category='cultural', name=
     # Create mask for Ethiopia
     lons, lats = np.meshgrid(da.lon, da.lat)
     points = np.column_stack((lons.ravel(), lats.ravel()))
-    mask = shpvec.contains(region_geom, points[:, 0], points[:, 1])
+    mask = contains(region_geom, points[:, 0], points[:, 1])
     mask = mask.reshape(lons.shape)
     mask_da = xr.DataArray(mask, dims=['lat', 'lon'], coords={'lat': da.lat, 'lon': da.lon})
 
