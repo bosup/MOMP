@@ -26,7 +26,7 @@ Installing ROMP consists of **two steps**:
 
 ### Step 1 — Set up a Python environment
 
-#### Option A (recommended) — Python virtual environment (pip-only)
+#### Option A — Python virtual environment (pip-only)
 This option is a lightweight setup which isolates project dependencies assuming the underlying operating system provides the necessary heavy lifting (doesn't duplicate system-level files).
 
 For **Windows** users, follow the steps below to set up Python environment  
